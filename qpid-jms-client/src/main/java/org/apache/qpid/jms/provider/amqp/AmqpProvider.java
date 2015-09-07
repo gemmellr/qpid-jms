@@ -644,9 +644,8 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
                         consumer = session.getConsumer(consumerId);
                     }
 
-                    consumer.pull(timeout);
+                    consumer.pull(timeout, request);
                     pumpToProtonTransport(request);
-                    request.onSuccess();
                 } catch (Exception error) {
                     request.onFailure(error);
                 }
