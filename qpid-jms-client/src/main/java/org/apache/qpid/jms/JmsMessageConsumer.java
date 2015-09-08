@@ -226,7 +226,22 @@ public class JmsMessageConsumer implements MessageConsumer, JmsMessageAvailableC
             timeout = -1;
         }
 
-        return copy(ackFromReceive(dequeue(timeout)));
+        JmsInboundMessageDispatch envelope = dequeue(timeout);
+        if (envelope == null && !isPullConsumer())
+        {
+            //TODO: don't do this if stopped, etc
+
+            //TODO: make it optional/configurable not to do this at all?
+
+            envelope = dequeue(0, true);
+
+            // TODO: refresh credit if needed, since the above drains it.
+            //       Processing acks can currently reopen the credit window, but if we don't get a message
+            //       here then, it will stay closed for regular prefetching consumers.
+            //       Further receive calls will add and drain credit though.
+        }
+
+        return copy(ackFromReceive(envelope));
     }
 
     /**
@@ -241,11 +256,16 @@ public class JmsMessageConsumer implements MessageConsumer, JmsMessageAvailableC
         JmsInboundMessageDispatch envelope = dequeue(0);
         if (envelope == null && !isPullConsumer())
         {
+            //TODO: don't do this if stopped, etc
+
+            //TODO: make it optional/configurable not to do this at all?
+
             envelope = dequeue(0, true);
 
             // TODO: refresh credit if needed, since the above drains it.
             //       Processing acks can currently reopen the credit window, but if we don't get a message
             //       here then, it will stay closed for regular prefetching consumers.
+            //       Further receive calls will add and drain credit though.
         }
 
         return copy(ackFromReceive(envelope));
@@ -281,10 +301,10 @@ public class JmsMessageConsumer implements MessageConsumer, JmsMessageAvailableC
 
             while (true) {
                 JmsInboundMessageDispatch envelope = null;
-                if ((isPullConsumer() || forcePull) && timeout != 0) {
-                    // TODO: the && timeout != 0 is present because the pull request waits for completion now.
-                    // Perhaps need to fix up this more, the forcePull might not actually be needed anymore.
-                    envelope = messageQueue.dequeue(-1);
+                if ((isPullConsumer() || forcePull)) {
+                    // Any waiting was done by the pull request above.
+                    // TODO: may we need to adjust deadline handling as a result, so that any subsequent pulls (for expired message filtering etc) have the right timeout.
+                    envelope = messageQueue.dequeue(0);
                 } else {
                     envelope = messageQueue.dequeue(timeout);
                 }

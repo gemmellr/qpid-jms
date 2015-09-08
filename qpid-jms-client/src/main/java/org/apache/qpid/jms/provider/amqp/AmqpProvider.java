@@ -724,6 +724,8 @@ public class AmqpProvider implements Provider, TransportListener {
                 public void run() {
                     LOG.info("Transport failed: {}", error.getMessage());
                     if (!closed.get()) {
+                        // We can't send any more output, so close the transport
+                        protonTransport.close_head();
                         fireProviderException(error);
                         if (connection != null) {
                             connection.closed();
@@ -748,8 +750,9 @@ public class AmqpProvider implements Provider, TransportListener {
                 public void run() {
                     LOG.debug("Transport connection remotely closed");
                     if (!closed.get()) {
+                        // We can't send any more output, so close the transport
+                        protonTransport.close_head();
                         fireProviderException(new IOException("Transport connection remotely closed."));
-                        //TODO: close the proton transport as well/instead?
                         if (connection != null) {
                             connection.closed();
                         }

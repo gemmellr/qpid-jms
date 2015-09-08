@@ -409,6 +409,8 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
 
             // Can either wait here, or simply return and have it wait on the JmsMessageConsumer internal queue.
             // Going for the latter right now.
+            // TODO: this complicates failover, since 'completed' pull requests are not replayed.
+            //       ....however, currently we seem to be generating lots of pull requests....??
             request.onSuccess();
         } else if (timeout == 0) {
             // If we have no credit then we need to issue some so that we can
@@ -430,6 +432,8 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
                 public void run() {
                     if (getEndpoint().getRemoteCredit() != 0) {
                         stop(request);
+                        // We close the proton transport head to avoid this doing any writes if
+                        // the TCP transport has gone, but it might be good to also avoid trying here.
                         session.getProvider().pumpToProtonTransport(request);
                     }
                 }
