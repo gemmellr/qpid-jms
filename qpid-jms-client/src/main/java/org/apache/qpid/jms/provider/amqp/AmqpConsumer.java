@@ -111,6 +111,23 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
         }
     }
 
+    private void stopOnSchedule(long timeout, final AsyncResult request) {
+        // We need to drain the credit if no message(s) arrive to use it.
+        final ScheduledFuture<?> future = getSession().schedule(new Runnable() {
+            @Override
+            public void run() {
+                if (getEndpoint().getRemoteCredit() != 0) {
+                    stop(request);
+                    // TODO: We close the proton transport head to avoid this doing any writes if
+                    // the TCP transport has gone, but it might be good to also avoid trying here.
+                    session.getProvider().pumpToProtonTransport(request);
+                }
+            }
+        }, timeout);
+
+        stopRequest = new ScheduledStopRequest(future, request);
+    }
+
     @Override
     public void processFlowUpdates(AmqpProvider provider) throws IOException {
         // Check if we tried to stop and have now run out of credit, and
@@ -288,37 +305,27 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
             request.onSuccess();
         } else if (timeout == 0) {
             // If we have no credit then we need to issue some so that we can
-            // try to fulfill the pull request, otherwise we want to drain down
-            // what is there to ensure we consume everything available.
+            // try to fulfill the request, then drain down what is there to
+            // ensure we consume what is available and remove all credit.
             if(getEndpoint().getCredit() == 0){
-                //TODO: Check that queued !=0 and != credit?
-                //      Somehow wait for any of the queued messages to be processed?
                 getEndpoint().flow(1);
             }
 
-            // Now drain and wait for the messages to arrive, or a flow removing the credit.
+            // Drain immediately and wait for the message(s) to arrive,
+            // or a flow indicating removal of the remaining credit.
             stop(request);
         } else if (timeout > 0) {
-            // We need to drain the credit if no message arrive to use it.
-            final ScheduledFuture<?> future = getSession().schedule(new Runnable() {
-
-                @Override
-                public void run() {
-                    if (getEndpoint().getRemoteCredit() != 0) {
-                        stop(request);
-                        // We close the proton transport head to avoid this doing any writes if
-                        // the TCP transport has gone, but it might be good to also avoid trying here.
-                        session.getProvider().pumpToProtonTransport(request);
-                    }
-                }
-            }, timeout);
-
+            // If we have no credit then we need to issue some so that we can
+            // try to fulfill the request, then drain down what is there to
+            // ensure we consume what is available and remove all credit.
             if (getEndpoint().getCredit() == 0) {
                 getEndpoint().flow(1);
             }
 
-            // TODO: Bit of a hack, be nice to defer to stop method here. We dont want to drain yet.
-            stopRequest = new ScheduledStopRequest(future, request);
+            // Wait for the timeout for the message(s) to arrive, then drain if required
+            // and wait for remaining message(s) to arrive or a flow indicating
+            // removal of the remaining credit.
+            stopOnSchedule(timeout, request);
         }
     }
 
