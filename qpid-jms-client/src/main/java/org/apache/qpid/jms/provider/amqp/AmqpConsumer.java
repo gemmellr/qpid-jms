@@ -421,6 +421,7 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
         if (timeout < 0) {
             // Wait until message arrives. Just give credit if needed.
             if (getEndpoint().getCredit() == 0) {
+                LOG.trace("Consumer {} granting 1 additional credit for pull.", getConsumerId());
                 getEndpoint().flow(1);
             }
 
@@ -434,6 +435,7 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
             // try to fulfill the request, then drain down what is there to
             // ensure we consume what is available and remove all credit.
             if(getEndpoint().getCredit() == 0){
+                LOG.trace("Consumer {} granting 1 additional credit for pull.", getConsumerId());
                 getEndpoint().flow(1);
             }
 
@@ -445,6 +447,7 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
             // try to fulfill the request, then drain down what is there to
             // ensure we consume what is available and remove all credit.
             if (getEndpoint().getCredit() == 0) {
+                LOG.trace("Consumer {} granting 1 additional credit for pull.", getConsumerId());
                 getEndpoint().flow(1);
             }
 
