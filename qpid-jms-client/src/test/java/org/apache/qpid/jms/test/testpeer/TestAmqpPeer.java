@@ -1674,17 +1674,14 @@ public class TestAmqpPeer implements AutoCloseable
         addHandler(new HeaderHandlerImpl(AmqpHeader.SASL_HEADER, AmqpHeader.SASL_HEADER, exitAfterHeader));
     }
 
-    public void expectLinkFlowThenDrop()
-    {
-        AmqpPeerRunnable exitAfterFlow = new AmqpPeerRunnable() {
+    public void dropAfterLastHandler() {
+        AmqpPeerRunnable exitEarly = new AmqpPeerRunnable() {
             @Override
             public void run() {
                 _driverRunnable.exitReadLoopEarly();
             }
         };
 
-        final FlowMatcher flowMatcher = new FlowMatcher().onCompletion(exitAfterFlow);
-
-        addHandler(flowMatcher);
+        runAfterLastHandler(exitEarly);
     }
 }

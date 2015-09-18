@@ -256,7 +256,8 @@ public class FailoverIntegrationTest extends QpidJmsTestCase {
             originalPeer.expectBegin();
             originalPeer.expectBegin();
             originalPeer.expectReceiverAttach();
-            originalPeer.expectLinkFlowThenDrop();
+            originalPeer.expectLinkFlow();
+            originalPeer.dropAfterLastHandler();
 
             final JmsConnection connection = establishAnonymousConnecton(originalPeer, finalPeer);
             connection.getPrefetchPolicy().setQueuePrefetch(0);
@@ -324,7 +325,8 @@ public class FailoverIntegrationTest extends QpidJmsTestCase {
             originalPeer.expectBegin();
             originalPeer.expectBegin();
             originalPeer.expectReceiverAttach();
-            originalPeer.expectLinkFlowThenDrop();
+            originalPeer.expectLinkFlow();
+            originalPeer.dropAfterLastHandler();
 
             final JmsConnection connection = establishAnonymousConnecton(originalPeer, finalPeer);
             connection.getPrefetchPolicy().setQueuePrefetch(0);
@@ -395,7 +397,8 @@ public class FailoverIntegrationTest extends QpidJmsTestCase {
             originalPeer.expectBegin();
             originalPeer.expectBegin();
             originalPeer.expectReceiverAttach();
-            originalPeer.expectLinkFlowThenDrop();
+            originalPeer.expectLinkFlow();
+            originalPeer.dropAfterLastHandler();
 
             final JmsConnection connection = establishAnonymousConnecton(originalPeer, finalPeer);
             connection.getPrefetchPolicy().setQueuePrefetch(0);
@@ -492,7 +495,8 @@ public class FailoverIntegrationTest extends QpidJmsTestCase {
             originalPeer.expectBegin();
             originalPeer.expectQueueBrowserAttach();
             originalPeer.expectLinkFlow();
-            originalPeer.expectLinkFlowThenDrop();
+            originalPeer.expectLinkFlow();
+            originalPeer.dropAfterLastHandler();
 
             // --- Post Failover Expectations of FinalPeer --- //
 

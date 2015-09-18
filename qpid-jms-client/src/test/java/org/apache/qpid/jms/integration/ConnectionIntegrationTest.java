@@ -124,6 +124,7 @@ public class ConnectionIntegrationTest extends QpidJmsTestCase {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
             Connection connection = testFixture.establishConnecton(testPeer);
 
+            // Expect the begin, then explicitly close the connection with an error
             testPeer.expectBegin(notNullValue(), false);
             testPeer.remotelyCloseConnection(true, AmqpError.NOT_ALLOWED, BREAD_CRUMB);
 
@@ -134,6 +135,26 @@ public class ConnectionIntegrationTest extends QpidJmsTestCase {
                 // Expected
                 assertNotNull("Expected exception to have a message", jmse.getMessage());
                 assertTrue("Expected breadcrumb to be present in message", jmse.getMessage().contains(BREAD_CRUMB));
+            }
+
+            testPeer.waitForAllHandlersToComplete(3000);
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testRemotelyDropConnectionDuringSessionCreation() throws Exception {
+        try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
+            Connection connection = testFixture.establishConnecton(testPeer);
+
+            // Expect the begin, then drop connection without without a close frame.
+            testPeer.expectBegin(notNullValue(), false);
+            testPeer.dropAfterLastHandler();
+
+            try {
+                connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                fail("Expected exception to be thrown");
+            } catch (JMSException jmse) {
+                // Expected
             }
 
             testPeer.waitForAllHandlersToComplete(3000);
