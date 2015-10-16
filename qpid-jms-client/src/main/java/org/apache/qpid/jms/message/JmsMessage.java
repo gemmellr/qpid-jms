@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -37,7 +36,7 @@ import org.apache.qpid.jms.util.TypeConversionSupport;
 public class JmsMessage implements javax.jms.Message {
 
     private static final String ID_PREFIX = "ID:";
-    protected transient Callable<Void> acknowledgeCallback;
+    protected transient JmsAcknowledgeCallback acknowledgeCallback;
     protected transient JmsConnection connection;
 
     protected final JmsMessageFacade facade;
@@ -93,8 +92,17 @@ public class JmsMessage implements javax.jms.Message {
     @Override
     public void acknowledge() throws JMSException {
         if (acknowledgeCallback != null) {
+            Integer ackType = null;
+            if(propertyExists(JmsMessageSupport.JMS_QPID_AMQP_ACK)) {
+                ackType = getIntProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK);
+            }
+
             try {
-                acknowledgeCallback.call();
+                if (ackType == null) {
+                    acknowledgeCallback.acknowledge(JmsMessageSupport.ACCEPTED);
+                } else {
+                    acknowledgeCallback.acknowledge(ackType);
+                }
             } catch (Throwable e) {
                 throw JmsExceptionSupport.create(e);
             }
@@ -471,12 +479,12 @@ public class JmsMessage implements javax.jms.Message {
         setObjectProperty(name, value);
     }
 
-    public Callable<Void> getAcknowledgeCallback() {
+    public JmsAcknowledgeCallback getAcknowledgeCallback() {
         return acknowledgeCallback;
     }
 
-    public void setAcknowledgeCallback(Callable<Void> acknowledgeCallback) {
-        this.acknowledgeCallback = acknowledgeCallback;
+    public void setAcknowledgeCallback(JmsAcknowledgeCallback jmsAcknowledgeCallback) {
+        this.acknowledgeCallback = jmsAcknowledgeCallback;
     }
 
     /**

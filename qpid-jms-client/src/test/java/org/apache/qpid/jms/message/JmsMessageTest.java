@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Enumeration;
-import java.util.concurrent.Callable;
 
 import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
@@ -1155,21 +1154,19 @@ public class JmsMessageTest {
         msg.acknowledge();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testAcknowledgeWitCallback() throws Exception {
-        Callable<Void> callback = Mockito.mock(Callable.class);
+        JmsAcknowledgeCallback callback = Mockito.mock(JmsAcknowledgeCallback.class);
         JmsMessage msg = factory.createMessage();
         msg.setAcknowledgeCallback(callback);
         msg.acknowledge();
-        Mockito.verify(callback).call();
+        Mockito.verify(callback).acknowledge(JmsMessageSupport.ACCEPTED);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testAcknowledgeWitCallbackThatThrows() throws Exception {
-        Callable<Void> callback = Mockito.mock(Callable.class);
-        Mockito.doThrow(new Exception()).when(callback).call();
+        JmsAcknowledgeCallback callback = Mockito.mock(JmsAcknowledgeCallback.class);
+        Mockito.doThrow(new JMSException("expected")).when(callback).acknowledge(JmsMessageSupport.ACCEPTED);
         JmsMessage msg = factory.createMessage();
         msg.setAcknowledgeCallback(callback);
         assertEquals(callback, msg.getAcknowledgeCallback());

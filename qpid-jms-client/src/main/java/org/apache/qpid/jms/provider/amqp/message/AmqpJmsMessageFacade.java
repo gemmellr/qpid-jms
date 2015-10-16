@@ -72,6 +72,8 @@ public class AmqpJmsMessageFacade implements JmsMessageFacade {
      */
     private Long userSpecifiedTTL = null;
 
+    private Integer acknowledgeType = null;
+
     /**
      * Create a new AMQP Message Facade with an empty message instance.
      *
@@ -881,5 +883,13 @@ public class AmqpJmsMessageFacade implements JmsMessageFacade {
             applicationPropertiesMap = new HashMap<String, Object>();
             message.setApplicationProperties(new ApplicationProperties(applicationPropertiesMap));
         }
+    }
+
+    public void setAcknowledgeType(Integer acknowledgeType) {
+        this.acknowledgeType = acknowledgeType;
+    }
+
+    public Integer getAcknowledgeType() {
+        return acknowledgeType;
     }
 }

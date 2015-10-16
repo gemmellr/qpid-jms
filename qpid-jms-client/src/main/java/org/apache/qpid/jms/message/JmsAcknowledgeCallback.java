@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,24 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.qpid.jms.provider;
+package org.apache.qpid.jms.message;
 
-/**
- * Set of Provider specific constants used when interacting with the Provider API.
- */
-public final class ProviderConstants {
+import javax.jms.JMSException;
 
-    private ProviderConstants() {}
+public interface JmsAcknowledgeCallback {
 
-    public enum ACK_TYPE {
-        // Aligned with AMQP dispositions
-        ACCEPTED,
-        RELEASED,
-        REJECTED,
-        MODIFIED_FAILED,
-        MODIFIED_FAILED_UNDELIVERABLE,
-        // Conceptual
-        DELIVERED,
-        EXPIRED;
-    }
+    void acknowledge(int disposition) throws JMSException;
 }

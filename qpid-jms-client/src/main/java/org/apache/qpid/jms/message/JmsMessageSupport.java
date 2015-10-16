@@ -37,4 +37,15 @@ public class JmsMessageSupport {
     public static final String JMSX_DELIVERY_COUNT = "JMSXDeliveryCount";
     public static final String JMSX_USERID = "JMSXUserID";
 
+    // TODO: decide on real property name for AMQP JMS Mapping
+    // Using a temporary qpid-specific vendor prop for now.
+    public static final String JMS_QPID_AMQP_ACK = "JMS_QPID_AMQP_ACK";
+
+    // TODO: advise not using these constants, since doing so wont be portable?
+    // Make them package private so they can't be used to begin with?
+    public static final int ACCEPTED = 1;
+    public static final int REJECTED = 2;
+    public static final int RELEASED = 3;
+    public static final int MODIFIED_FAILED = 4;
+    public static final int MODIFIED_FAILED_UNDELIVERABLE = 5;
 }

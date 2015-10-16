@@ -27,6 +27,7 @@ import javax.jms.JMSSecurityException;
 import org.apache.qpid.jms.provider.ProviderRedirectedException;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.Modified;
+import org.apache.qpid.proton.amqp.messaging.Rejected;
 import org.apache.qpid.proton.amqp.transport.AmqpError;
 import org.apache.qpid.proton.amqp.transport.ConnectionError;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
@@ -59,21 +60,24 @@ public class AmqpSupport {
     public static final Symbol COPY = Symbol.getSymbol("copy");
     public static final Symbol JMS_NO_LOCAL_SYMBOL = Symbol.valueOf("no-local");
     public static final Symbol JMS_SELECTOR_SYMBOL = Symbol.valueOf("jms-selector");
-    public static final Modified MODIFIED_FAILED = new Modified();
-    public static final Modified MODIFIED_UNDELIVERABLE = new Modified();
 
     // Temporary Destination constants
     public static final Symbol DYNAMIC_NODE_LIFETIME_POLICY = Symbol.valueOf("lifetime-policy");
     public static final String TEMP_QUEUE_CREATOR = "temp-queue-creator:";
     public static final String TEMP_TOPIC_CREATOR = "temp-topic-creator:";
 
+    // Delivery states
+    public static final Rejected REJECTED = new Rejected();
+    public static final Modified MODIFIED_FAILED = new Modified();
+    public static final Modified MODIFIED_FAILED_UNDELIVERABLE = new Modified();
+
     //----- Static initializer -----------------------------------------------//
 
     static {
         MODIFIED_FAILED.setDeliveryFailed(true);
 
-        MODIFIED_UNDELIVERABLE.setDeliveryFailed(true);
-        MODIFIED_UNDELIVERABLE.setUndeliverableHere(true);
+        MODIFIED_FAILED_UNDELIVERABLE.setDeliveryFailed(true);
+        MODIFIED_FAILED_UNDELIVERABLE.setUndeliverableHere(true);
     }
 
     //----- Utility Methods --------------------------------------------------//

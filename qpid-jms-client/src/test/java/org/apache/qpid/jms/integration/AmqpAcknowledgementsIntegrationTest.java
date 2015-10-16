@@ -1,0 +1,116 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.qpid.jms.integration;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.Queue;
+import javax.jms.Session;
+
+import org.apache.qpid.jms.message.JmsMessageSupport;
+import org.apache.qpid.jms.test.QpidJmsTestCase;
+import org.apache.qpid.jms.test.testpeer.TestAmqpPeer;
+import org.apache.qpid.jms.test.testpeer.describedtypes.sections.AmqpValueDescribedType;
+import org.apache.qpid.jms.test.testpeer.matchers.AcceptedMatcher;
+import org.apache.qpid.jms.test.testpeer.matchers.ModifiedMatcher;
+import org.apache.qpid.jms.test.testpeer.matchers.RejectedMatcher;
+import org.apache.qpid.jms.test.testpeer.matchers.ReleasedMatcher;
+import org.hamcrest.Matcher;
+import org.junit.Test;
+
+public class AmqpAcknowledgementsIntegrationTest extends QpidJmsTestCase {
+
+    private static final int SKIP = -1;
+
+    private final IntegrationTestFixture testFixture = new IntegrationTestFixture();
+
+    @Test(timeout = 20000)
+    public void testDefaultAcceptMessages() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(SKIP, new AcceptedMatcher());
+    }
+
+    @Test(timeout = 20000)
+    public void testRequestAcceptMessages() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.ACCEPTED, new AcceptedMatcher());
+    }
+
+    @Test(timeout = 20000)
+    public void testRequestRejectMessages() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.REJECTED, new RejectedMatcher());
+    }
+
+    @Test(timeout = 20000)
+    public void testRequestReleaseMessages() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.RELEASED, new ReleasedMatcher());
+    }
+
+    @Test(timeout = 20000)
+    public void testRequestModifiedFailedMessages() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.MODIFIED_FAILED, new ModifiedMatcher().withDeliveryFailed(equalTo(true)));
+    }
+
+    @Test(timeout = 20000)
+    public void testRequestModifiedFailedUndeliverableHereMessages() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE, new ModifiedMatcher().withDeliveryFailed(equalTo(true)).withUndeliverableHere(equalTo(true)));
+    }
+
+    private void doTestAmqpAcknowledgementTestImpl(int disposition, Matcher<?> descriptorMatcher) throws JMSException, InterruptedException, Exception, IOException {
+        try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
+            Connection connection = testFixture.establishConnecton(testPeer);
+            connection.start();
+
+            testPeer.expectBegin();
+
+            Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+            Queue queue = session.createQueue("myQueue");
+
+            int msgCount = 3;
+            testPeer.expectReceiverAttach();
+            testPeer.expectLinkFlowRespondWithTransfer(null, null, null, null, new AmqpValueDescribedType(null), msgCount);
+            for (int i = 1; i <= msgCount; i++) {
+                testPeer.expectDisposition(true, descriptorMatcher);
+            }
+
+            MessageConsumer messageConsumer = session.createConsumer(queue);
+
+            Message lastReceivedMessage = null;
+            for (int i = 1; i <= msgCount; i++) {
+                lastReceivedMessage = messageConsumer.receive(6000);
+                assertNotNull("Message " + i + " was not recieved", lastReceivedMessage);
+            }
+
+            if (disposition != SKIP) {
+                lastReceivedMessage.clearProperties();
+                lastReceivedMessage.setIntProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, disposition);
+            }
+
+            lastReceivedMessage.acknowledge();
+
+            testPeer.waitForAllHandlersToComplete(3000);
+        }
+    }
+
+}
