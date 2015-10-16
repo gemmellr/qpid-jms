@@ -306,7 +306,7 @@ public class JmsMessage implements javax.jms.Message {
 
     @Override
     public void setObjectProperty(String name, Object value) throws JMSException {
-        checkReadOnlyProperties();
+        checkReadOnlyProperties(name);
         checkPropertyNameIsValid(name);
         checkValidObject(value);
         JmsMessagePropertyIntercepter.setProperty(facade, name, value);
@@ -538,7 +538,11 @@ public class JmsMessage implements javax.jms.Message {
         return "JmsMessage { " + facade + " }";
     }
 
-    protected void checkReadOnlyProperties() throws MessageNotWriteableException {
+    protected void checkReadOnlyProperties(String name) throws MessageNotWriteableException {
+        if(JmsMessagePropertyIntercepter.isBypassReadOnlyProperties(name, facade)) {
+            return;
+        }
+
         if (readOnlyProperties) {
             throw new MessageNotWriteableException("Message properties are read-only");
         }

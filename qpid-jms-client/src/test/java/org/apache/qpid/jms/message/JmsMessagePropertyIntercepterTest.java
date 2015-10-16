@@ -1317,4 +1317,23 @@ public class JmsMessagePropertyIntercepterTest {
         JmsMessagePropertyIntercepter.clearProperties(message, false);
         Mockito.verify(message, Mockito.times(2)).setUserId(null);
     }
+
+    //---------- Read Only Properties Bypass Check ---------------------------------------//
+
+    @Test
+    public void testIsBypassReadOnlyPropertieWithNonInterceptedName() throws JMSException {
+        String propName = "SomeRandomPropertyName";
+
+        JmsMessageFacade message = Mockito.mock(JmsMessageFacade.class);
+        Mockito.when(message.isBypassReadOnlyProperties(propName)).thenReturn(false);
+
+        assertFalse(JmsMessagePropertyIntercepter.isBypassReadOnlyProperties(propName, message));
+        Mockito.verify(message).isBypassReadOnlyProperties(propName);
+
+        JmsMessageFacade message2 = Mockito.mock(JmsMessageFacade.class);
+        Mockito.when(message2.isBypassReadOnlyProperties(propName)).thenReturn(true);
+
+        assertTrue(JmsMessagePropertyIntercepter.isBypassReadOnlyProperties(propName, message2));
+        Mockito.verify(message2).isBypassReadOnlyProperties(propName);
+    }
 }

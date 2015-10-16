@@ -331,4 +331,9 @@ public class JmsTestMessageFacade implements JmsMessageFacade {
     public void setGroupSequence(int groupSequence) {
         this.groupSequence = groupSequence;
     }
+
+    @Override
+    public boolean isBypassReadOnlyProperties(String name) {
+        return false;
+    }
 }

@@ -651,4 +651,8 @@ public class JmsMessagePropertyIntercepter {
 
         return names;
     }
+
+    public static boolean isBypassReadOnlyProperties(String name, JmsMessageFacade message) {
+        return message.isBypassReadOnlyProperties(name);
+    }
 }

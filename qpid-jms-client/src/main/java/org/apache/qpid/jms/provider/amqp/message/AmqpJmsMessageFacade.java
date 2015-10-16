@@ -896,4 +896,9 @@ public class AmqpJmsMessageFacade implements JmsMessageFacade {
     public Integer getAcknowledgeType() {
         return acknowledgeType;
     }
+
+    @Override
+    public boolean isBypassReadOnlyProperties(String name) {
+        return AmqpJmsMessagePropertyIntercepter.isBypassReadOnlyProperties(name);
+    }
 }

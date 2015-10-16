@@ -21,10 +21,7 @@ package org.apache.qpid.jms.integration;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
-
 import javax.jms.Connection;
-import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.Queue;
@@ -49,35 +46,40 @@ public class AmqpAcknowledgementsIntegrationTest extends QpidJmsTestCase {
 
     @Test(timeout = 20000)
     public void testDefaultAcceptMessages() throws Exception {
-        doTestAmqpAcknowledgementTestImpl(SKIP, new AcceptedMatcher());
+        doTestAmqpAcknowledgementTestImpl(SKIP, new AcceptedMatcher(), false);
     }
 
     @Test(timeout = 20000)
     public void testRequestAcceptMessages() throws Exception {
-        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.ACCEPTED, new AcceptedMatcher());
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.ACCEPTED, new AcceptedMatcher(), false);
     }
 
     @Test(timeout = 20000)
     public void testRequestRejectMessages() throws Exception {
-        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.REJECTED, new RejectedMatcher());
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.REJECTED, new RejectedMatcher(), false);
     }
 
     @Test(timeout = 20000)
     public void testRequestReleaseMessages() throws Exception {
-        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.RELEASED, new ReleasedMatcher());
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.RELEASED, new ReleasedMatcher(), false);
+    }
+
+    @Test(timeout = 20000)
+    public void testRequestReleaseMessagesClearPropsFirst() throws Exception {
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.RELEASED, new ReleasedMatcher(), true);
     }
 
     @Test(timeout = 20000)
     public void testRequestModifiedFailedMessages() throws Exception {
-        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.MODIFIED_FAILED, new ModifiedMatcher().withDeliveryFailed(equalTo(true)));
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.MODIFIED_FAILED, new ModifiedMatcher().withDeliveryFailed(equalTo(true)), false);
     }
 
     @Test(timeout = 20000)
     public void testRequestModifiedFailedUndeliverableHereMessages() throws Exception {
-        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE, new ModifiedMatcher().withDeliveryFailed(equalTo(true)).withUndeliverableHere(equalTo(true)));
+        doTestAmqpAcknowledgementTestImpl(JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE, new ModifiedMatcher().withDeliveryFailed(equalTo(true)).withUndeliverableHere(equalTo(true)), false);
     }
 
-    private void doTestAmqpAcknowledgementTestImpl(int disposition, Matcher<?> descriptorMatcher) throws JMSException, InterruptedException, Exception, IOException {
+    private void doTestAmqpAcknowledgementTestImpl(int disposition, Matcher<?> descriptorMatcher, boolean clearPropsFirst) throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
             Connection connection = testFixture.establishConnecton(testPeer);
             connection.start();
@@ -103,7 +105,9 @@ public class AmqpAcknowledgementsIntegrationTest extends QpidJmsTestCase {
             }
 
             if (disposition != SKIP) {
-                lastReceivedMessage.clearProperties();
+                if (clearPropsFirst) {
+                    lastReceivedMessage.clearProperties();
+                }
                 lastReceivedMessage.setIntProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, disposition);
             }
 

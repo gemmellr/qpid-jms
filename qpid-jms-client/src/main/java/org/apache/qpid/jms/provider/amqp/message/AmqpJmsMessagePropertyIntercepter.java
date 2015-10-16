@@ -340,4 +340,8 @@ public class AmqpJmsMessagePropertyIntercepter {
 
         message.clearAllApplicationProperties();
     }
+
+    public static boolean isBypassReadOnlyProperties(String name) {
+        return JMS_QPID_AMQP_ACK.equals(name);
+    }
 }

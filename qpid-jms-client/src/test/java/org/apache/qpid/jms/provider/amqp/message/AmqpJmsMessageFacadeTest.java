@@ -1781,6 +1781,62 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
         assertFalse(amqpMessageFacade.propertyExists(null));
     }
 
+    //---------- Ack type property flag  ---------------------------------------//
+
+    @Test
+    public void testIsBypassReadOnlyPropertiesWithAmqpAckTypeProperty() throws JMSException {
+        JmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), Proton.message());
+
+        assertTrue(facade.isBypassReadOnlyProperties(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertFalse(facade.isBypassReadOnlyProperties("SomeRandomPropertyName"));
+    }
+
+    @Test
+    public void testSetAmqpAckTypeViaProperty() throws JMSException {
+        AmqpJmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), Proton.message());
+
+        assertNull("Facade should not have an acknowledge type value yet", facade.getAcknowledgeType());
+        assertNull("Facade should not have an acknowledge type property value yet", facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+
+        facade.setProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, JmsMessageSupport.RELEASED);
+
+        assertEquals("Facade has unexpected acknowledge type value", Integer.valueOf(JmsMessageSupport.RELEASED), facade.getAcknowledgeType());
+        assertEquals("Facade has unexpected acknowledge type property value", Integer.valueOf(JmsMessageSupport.RELEASED), facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+    }
+
+    @Test
+    public void testSetAmqpAckTypeViaMethod() throws JMSException {
+        AmqpJmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), Proton.message());
+
+        assertNull("Facade should not have an acknowledge type value yet", facade.getAcknowledgeType());
+        assertNull("Facade should not have an acknowledge type property value yet", facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+
+        facade.setAcknowledgeType(JmsMessageSupport.REJECTED);
+
+        assertEquals("Facade has unexpected acknowledge type value", Integer.valueOf(JmsMessageSupport.REJECTED), facade.getAcknowledgeType());
+        assertEquals("Facade has unexpected acknowledge type property value", Integer.valueOf(JmsMessageSupport.REJECTED), facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+    }
+
+    @Test
+    public void testSetAmqpAckTypeDoesNotAddToEntryApplicationPropertiesSection() throws JMSException {
+        String otherPropName = "SomeRandomPropertyName";
+        Message protonMessage = Proton.message();
+
+        AmqpJmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), protonMessage);
+
+        assertNull("Facade should not have an acknowledge type value yet", facade.getAcknowledgeType());
+
+        facade.setProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, JmsMessageSupport.RELEASED);
+        facade.setProperty(otherPropName, otherPropName);
+
+        Map<?,?> underlying = protonMessage.getApplicationProperties().getValue();
+
+        assertNotNull("Did not find underlying app properties map", underlying);
+        assertTrue("Should have contained other prop", underlying.containsKey(otherPropName));
+        assertFalse("Should not have contained ack type prop", underlying.containsKey(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertEquals("Unexpected size", 1, underlying.size());
+    }
+
     // ====== AMQP Message Facade copy() tests =======
     // ===============================================
 

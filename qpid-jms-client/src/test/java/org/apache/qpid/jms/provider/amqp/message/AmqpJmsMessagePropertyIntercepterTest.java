@@ -31,6 +31,7 @@ import java.util.Set;
 import javax.jms.JMSException;
 import javax.jms.MessageFormatException;
 
+import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -301,6 +302,14 @@ public class AmqpJmsMessagePropertyIntercepterTest {
             fail("Should have thrown an exception for this call");
         } catch (JMSException e) {
         }
+    }
+
+    //---------- ack type property ---------------------------------------//
+
+    @Test
+    public void testIsBypassReadOnlyPropertieWithAckTypeProperty() throws JMSException {
+        assertTrue(AmqpJmsMessagePropertyIntercepter.isBypassReadOnlyProperties(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertFalse(AmqpJmsMessagePropertyIntercepter.isBypassReadOnlyProperties("SomeRandomPropertyName"));
     }
 
     //--------- Utilities ----------------------------------------------------//
