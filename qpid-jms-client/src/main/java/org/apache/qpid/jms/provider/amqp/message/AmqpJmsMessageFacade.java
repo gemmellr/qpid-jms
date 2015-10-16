@@ -267,6 +267,10 @@ public class AmqpJmsMessageFacade implements JmsMessageFacade {
             target.userSpecifiedTTL = userSpecifiedTTL;
         }
 
+        if (acknowledgeType != null) {
+            target.acknowledgeType = acknowledgeType;
+        }
+
         Message targetMsg = target.getAmqpMessage();
 
         if (message.getHeader() != null) {

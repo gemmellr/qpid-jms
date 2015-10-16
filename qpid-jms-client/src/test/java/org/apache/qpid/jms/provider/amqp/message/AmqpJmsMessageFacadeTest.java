@@ -44,6 +44,7 @@ import org.apache.qpid.jms.JmsDestination;
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsTemporaryQueue;
 import org.apache.qpid.jms.JmsTopic;
+import org.apache.qpid.jms.message.JmsMessageSupport;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.test.testpeer.describedtypes.sections.PropertiesDescribedType;
 import org.apache.qpid.proton.Proton;
@@ -1856,6 +1857,21 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
         // There should be one since AmqpTtl is used for an extended option
         assertEquals(1, copy.getPropertyNames().size());
         assertEquals(amqpTtl, copy.getProperty(AmqpMessageSupport.JMS_AMQP_TTL));
+    }
+
+    @Test
+    public void testCopyMessageWithAmqpAckTypeSet() throws JMSException {
+        AmqpJmsMessageFacade source = createNewMessageFacade();
+
+        source.setAcknowledgeType(JmsMessageSupport.MODIFIED_FAILED);
+
+        AmqpJmsMessageFacade copy = source.copy();
+
+        assertEquals(source.getAcknowledgeType(), copy.getAcknowledgeType());
+
+        // There should be one since ack type is used for an extended option
+        assertEquals(1, copy.getPropertyNames().size());
+        assertEquals(JmsMessageSupport.MODIFIED_FAILED, copy.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
     }
 
     // ====== AMQP Message Facade misc tests =========
