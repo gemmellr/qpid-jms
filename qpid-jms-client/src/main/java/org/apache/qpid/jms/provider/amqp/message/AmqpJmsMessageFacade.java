@@ -195,7 +195,7 @@ public class AmqpJmsMessageFacade implements JmsMessageFacade {
         AmqpJmsMessagePropertyIntercepter.setProperty(this, key, value);
     }
 
-    public void setApplicationProperty(String key, Object value) throws JMSException {
+    protected void setApplicationProperty(String key, Object value) throws JMSException {
         lazyCreateApplicationProperties();
         applicationPropertiesMap.put(key, value);
     }
