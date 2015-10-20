@@ -16,7 +16,7 @@
  */
 package org.apache.qpid.jms.provider.amqp.message;
 
-import static org.apache.qpid.jms.message.JmsMessageSupport.JMS_QPID_AMQP_ACK;
+import static org.apache.qpid.jms.message.JmsMessageSupport.JMS_AMQP_ACK_TYPE;
 import static org.apache.qpid.jms.provider.amqp.message.AmqpMessageSupport.JMS_AMQP_REPLY_TO_GROUP_ID;
 import static org.apache.qpid.jms.provider.amqp.message.AmqpMessageSupport.JMS_AMQP_TTL;
 import static org.apache.qpid.jms.provider.amqp.message.AmqpMessageSupport.JMS_AMQP_TYPED_ENCODING;
@@ -190,9 +190,7 @@ public class AmqpJmsMessagePropertyIntercepter {
                 // TODO - Should we leave encoding intact or change to the default.
             }
         });
-        // TODO: decide on real property name for AMQP JMS Mapping
-        // Using a temporary qpid-specific vendor prop for now.
-        PROPERTY_INTERCEPTERS.put(JMS_QPID_AMQP_ACK, new PropertyIntercepter() {
+        PROPERTY_INTERCEPTERS.put(JMS_AMQP_ACK_TYPE, new PropertyIntercepter() {
             @Override
             public Integer getProperty(AmqpJmsMessageFacade message) throws JMSException {
                 return message.getAcknowledgeType();
@@ -202,7 +200,7 @@ public class AmqpJmsMessagePropertyIntercepter {
             public void setProperty(AmqpJmsMessageFacade message, Object value) throws JMSException {
                 Integer rc = (Integer) TypeConversionSupport.convert(value, Integer.class);
                 if (rc == null) {
-                    throw new JMSException("Property " + JMS_QPID_AMQP_ACK + " cannot be set from a " + value.getClass().getName() + ".");
+                    throw new JMSException("Property " + JMS_AMQP_ACK_TYPE + " cannot be set from a " + value.getClass().getName() + ".");
                 }
 
                 message.setAcknowledgeType(rc);
@@ -342,6 +340,6 @@ public class AmqpJmsMessagePropertyIntercepter {
     }
 
     public static boolean isBypassReadOnlyProperties(String name) {
-        return JMS_QPID_AMQP_ACK.equals(name);
+        return JMS_AMQP_ACK_TYPE.equals(name);
     }
 }

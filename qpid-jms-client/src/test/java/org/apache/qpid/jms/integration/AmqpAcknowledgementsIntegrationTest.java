@@ -108,7 +108,7 @@ public class AmqpAcknowledgementsIntegrationTest extends QpidJmsTestCase {
                 if (clearPropsFirst) {
                     lastReceivedMessage.clearProperties();
                 }
-                lastReceivedMessage.setIntProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, disposition);
+                lastReceivedMessage.setIntProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE, disposition);
             }
 
             lastReceivedMessage.acknowledge();

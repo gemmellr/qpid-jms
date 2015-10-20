@@ -1787,7 +1787,7 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
     public void testIsBypassReadOnlyPropertiesWithAmqpAckTypeProperty() throws JMSException {
         JmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), Proton.message());
 
-        assertTrue(facade.isBypassReadOnlyProperties(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertTrue(facade.isBypassReadOnlyProperties(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
         assertFalse(facade.isBypassReadOnlyProperties("SomeRandomPropertyName"));
     }
 
@@ -1796,12 +1796,12 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
         AmqpJmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), Proton.message());
 
         assertNull("Facade should not have an acknowledge type value yet", facade.getAcknowledgeType());
-        assertNull("Facade should not have an acknowledge type property value yet", facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertNull("Facade should not have an acknowledge type property value yet", facade.getProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
 
-        facade.setProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, JmsMessageSupport.RELEASED);
+        facade.setProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE, JmsMessageSupport.RELEASED);
 
         assertEquals("Facade has unexpected acknowledge type value", Integer.valueOf(JmsMessageSupport.RELEASED), facade.getAcknowledgeType());
-        assertEquals("Facade has unexpected acknowledge type property value", Integer.valueOf(JmsMessageSupport.RELEASED), facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertEquals("Facade has unexpected acknowledge type property value", Integer.valueOf(JmsMessageSupport.RELEASED), facade.getProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
     }
 
     @Test
@@ -1809,12 +1809,12 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
         AmqpJmsMessageFacade facade = createReceivedMessageFacade(createMockAmqpConsumer(), Proton.message());
 
         assertNull("Facade should not have an acknowledge type value yet", facade.getAcknowledgeType());
-        assertNull("Facade should not have an acknowledge type property value yet", facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertNull("Facade should not have an acknowledge type property value yet", facade.getProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
 
         facade.setAcknowledgeType(JmsMessageSupport.REJECTED);
 
         assertEquals("Facade has unexpected acknowledge type value", Integer.valueOf(JmsMessageSupport.REJECTED), facade.getAcknowledgeType());
-        assertEquals("Facade has unexpected acknowledge type property value", Integer.valueOf(JmsMessageSupport.REJECTED), facade.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertEquals("Facade has unexpected acknowledge type property value", Integer.valueOf(JmsMessageSupport.REJECTED), facade.getProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
     }
 
     @Test
@@ -1826,14 +1826,14 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
 
         assertNull("Facade should not have an acknowledge type value yet", facade.getAcknowledgeType());
 
-        facade.setProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK, JmsMessageSupport.RELEASED);
+        facade.setProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE, JmsMessageSupport.RELEASED);
         facade.setProperty(otherPropName, otherPropName);
 
         Map<?,?> underlying = protonMessage.getApplicationProperties().getValue();
 
         assertNotNull("Did not find underlying app properties map", underlying);
         assertTrue("Should have contained other prop", underlying.containsKey(otherPropName));
-        assertFalse("Should not have contained ack type prop", underlying.containsKey(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertFalse("Should not have contained ack type prop", underlying.containsKey(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
         assertEquals("Unexpected size", 1, underlying.size());
     }
 
@@ -1927,7 +1927,7 @@ public class AmqpJmsMessageFacadeTest extends AmqpJmsMessageTypesTestCase  {
 
         // There should be one since ack type is used for an extended option
         assertEquals(1, copy.getPropertyNames().size());
-        assertEquals(JmsMessageSupport.MODIFIED_FAILED, copy.getProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertEquals(JmsMessageSupport.MODIFIED_FAILED, copy.getProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
     }
 
     // ====== AMQP Message Facade misc tests =========

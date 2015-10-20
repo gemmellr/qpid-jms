@@ -93,8 +93,8 @@ public class JmsMessage implements javax.jms.Message {
     public void acknowledge() throws JMSException {
         if (acknowledgeCallback != null) {
             Integer ackType = null;
-            if(propertyExists(JmsMessageSupport.JMS_QPID_AMQP_ACK)) {
-                ackType = getIntProperty(JmsMessageSupport.JMS_QPID_AMQP_ACK);
+            if(propertyExists(JmsMessageSupport.JMS_AMQP_ACK_TYPE)) {
+                ackType = getIntProperty(JmsMessageSupport.JMS_AMQP_ACK_TYPE);
             }
 
             try {

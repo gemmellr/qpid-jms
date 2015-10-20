@@ -308,7 +308,7 @@ public class AmqpJmsMessagePropertyIntercepterTest {
 
     @Test
     public void testIsBypassReadOnlyPropertieWithAckTypeProperty() throws JMSException {
-        assertTrue(AmqpJmsMessagePropertyIntercepter.isBypassReadOnlyProperties(JmsMessageSupport.JMS_QPID_AMQP_ACK));
+        assertTrue(AmqpJmsMessagePropertyIntercepter.isBypassReadOnlyProperties(JmsMessageSupport.JMS_AMQP_ACK_TYPE));
         assertFalse(AmqpJmsMessagePropertyIntercepter.isBypassReadOnlyProperties("SomeRandomPropertyName"));
     }
 
