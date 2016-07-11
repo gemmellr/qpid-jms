@@ -614,7 +614,7 @@ public class ProducerIntegrationTest extends QpidJmsTestCase {
             Object receivedMessageId = propsMatcher.getReceivedMessageId();
 
             assertTrue("Expected string message id to be sent", receivedMessageId instanceof String);
-            assertTrue("Expected JMSMessageId value to be present in AMQP message", jmsMessageID.endsWith((String)receivedMessageId));
+            assertTrue("Expected JMSMessageId value to be present in AMQP message", jmsMessageID.equals(receivedMessageId));
         }
     }
 
@@ -715,13 +715,15 @@ public class ProducerIntegrationTest extends QpidJmsTestCase {
 
             connection.close();
 
-            // Get the value that was actually transmitted/received, verify it is a String, compare to what we have locally
+            // Get the value that was actually transmitted/received, verify it is a String,
+            // compare to what we have locally, and verify the value after 'ID:' parses as a UUID.
             testPeer.waitForAllHandlersToComplete(1000);
 
             Object receivedMessageId = propsMatcher.getReceivedMessageId();
 
-            assertTrue("Expected UUID message id to be sent", receivedMessageId instanceof String);
-            assertTrue("Expected JMSMessageId value to be present in AMQP message", jmsMessageID.endsWith(receivedMessageId.toString()));
+            assertTrue("Expected String message id to be sent", receivedMessageId instanceof String);
+            assertTrue("Expected JMSMessageId value to be present in AMQP message", jmsMessageID.equals(receivedMessageId));
+            UUID.fromString(((String)receivedMessageId).substring(3));
         }
     }
 

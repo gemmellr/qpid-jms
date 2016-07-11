@@ -150,21 +150,20 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns null if given null
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns null if given null
      */
     @Test
-    public void testToBaseMessageIdStringWithNull() {
-        String nullString = null;
-        assertNull("null string should have been returned", _messageIdHelper.toBaseMessageIdString(nullString));
+    public void testToMessageIdStringWithNull() {
+        assertNull("null string should have been returned", _messageIdHelper.toMessageIdString(null));
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} throws an IAE if given an unexpected object type.
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} throws an IAE if given an unexpected object type.
      */
     @Test
-    public void testToBaseMessageIdStringThrowsIAEWithUnexpectedType() {
+    public void testToMessageIdStringThrowsIAEWithUnexpectedType() {
         try {
-            _messageIdHelper.toBaseMessageIdString(new Object());
+            _messageIdHelper.toMessageIdString(new Object());
             fail("expected exception not thrown");
         } catch (IllegalArgumentException iae) {
             // expected
@@ -172,120 +171,315 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns the given
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns the given
      * basic string unchanged
      */
     @Test
-    public void testToBaseMessageIdStringWithString() {
-        String stringMessageId = "myIdString";
+    public void testToMessageIdStringWithString() {
+        String stringId = "ID:myIdString";
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(stringMessageId);
-        assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", stringMessageId, baseMessageIdString);
+        String idString = _messageIdHelper.toMessageIdString(stringId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", stringId, idString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns the given
+     * basic string unchanged
+     */
+    @Test
+    public void testToMessageIdStringWithStringNoPrefix() {
+        String stringId = "myIdStringNoPrefix";
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_NO_PREFIX + stringId;
+
+        String idString = _messageIdHelper.toMessageIdString(stringId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded string, when the given string happens to already begin with
      * the {@link AmqpMessageIdHelper#AMQP_UUID_PREFIX}.
      */
     @Test
-    public void testToBaseMessageIdStringWithStringBeginningWithEncodingPrefixForUUID() {
-        String uuidStringMessageId = AmqpMessageIdHelper.AMQP_UUID_PREFIX + UUID.randomUUID();
-        String expected = AmqpMessageIdHelper.AMQP_STRING_PREFIX + uuidStringMessageId;
+    public void testToMessageIdStringWithStringBeginningWithEncodingPrefixForUUID() {
+        String uuidStringMessageId =  AmqpMessageIdHelper.AMQP_UUID_PREFIX + UUID.randomUUID();
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + uuidStringMessageId;
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(uuidStringMessageId);
-        assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+        String idString = _messageIdHelper.toMessageIdString(uuidStringMessageId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded string, when the given string happens to already begin with
      * the {@link AmqpMessageIdHelper#AMQP_ULONG_PREFIX}.
      */
     @Test
     public void testToBaseMessageIdStringWithStringBeginningWithEncodingPrefixForLong() {
         String longStringMessageId = AmqpMessageIdHelper.AMQP_ULONG_PREFIX + Long.valueOf(123456789L);
-        String expected = AmqpMessageIdHelper.AMQP_STRING_PREFIX + longStringMessageId;
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + longStringMessageId;
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(longStringMessageId);
+        String baseMessageIdString = _messageIdHelper.toMessageIdString(longStringMessageId);
         assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+        assertEquals("expected id string was not returned", expected, baseMessageIdString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded string, when the given string happens to already begin with
      * the {@link AmqpMessageIdHelper#AMQP_BINARY_PREFIX}.
      */
     @Test
-    public void testToBaseMessageIdStringWithStringBeginningWithEncodingPrefixForBinary() {
+    public void testToMessageIdStringWithStringBeginningWithEncodingPrefixForBinary() {
         String binaryStringMessageId = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "0123456789ABCDEF";
-        String expected = AmqpMessageIdHelper.AMQP_STRING_PREFIX + binaryStringMessageId;
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + binaryStringMessageId;
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(binaryStringMessageId);
+        String baseMessageIdString = _messageIdHelper.toMessageIdString(binaryStringMessageId);
         assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+        assertEquals("expected id string was not returned", expected, baseMessageIdString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded string (effectively twice), when the given string happens to already begin with
      * the {@link AmqpMessageIdHelper#AMQP_STRING_PREFIX}.
      */
     @Test
-    public void testToBaseMessageIdStringWithStringBeginningWithEncodingPrefixForString() {
+    public void testToMessageIdStringWithStringBeginningWithEncodingPrefixForString() {
         String stringMessageId = AmqpMessageIdHelper.AMQP_STRING_PREFIX + "myStringId";
-        String expected = AmqpMessageIdHelper.AMQP_STRING_PREFIX + stringMessageId;
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + stringMessageId;
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(stringMessageId);
+        String baseMessageIdString = _messageIdHelper.toMessageIdString(stringMessageId);
         assertNotNull("null string should not have been returned", baseMessageIdString);
         assertEquals("expected base id string was not returned", expected, baseMessageIdString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
+     * indicating an AMQP encoded string (effectively twice), when the given string happens to already begin with
+     * the {@link AmqpMessageIdHelper#AMQP_NO_PREFIX}.
+     */
+    @Test
+    public void testToMessageIdStringWithStringBeginningWithEncodingPrefixForNoIdPrefix() {
+        String stringMessageId = AmqpMessageIdHelper.AMQP_NO_PREFIX + "myStringId";
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + stringMessageId;
+
+        String baseMessageIdString = _messageIdHelper.toMessageIdString(stringMessageId);
+        assertNotNull("null string should not have been returned", baseMessageIdString);
+        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded UUID when given a UUID object.
      */
     @Test
-    public void testToBaseMessageIdStringWithUUID() {
+    public void testToMessageIdStringWithUUID() {
         UUID uuidMessageId = UUID.randomUUID();
-        String expected = AmqpMessageIdHelper.AMQP_UUID_PREFIX + uuidMessageId.toString();
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_UUID_PREFIX + uuidMessageId.toString();
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(uuidMessageId);
-        assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+        String idString = _messageIdHelper.toMessageIdString(uuidMessageId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded ulong when given a UnsignedLong object.
      */
     @Test
-    public void testToBaseMessageIdStringWithUnsignedLong() {
+    public void testToMessageIdStringWithUnsignedLong() {
         UnsignedLong uLongMessageId = UnsignedLong.valueOf(123456789L);
-        String expected = AmqpMessageIdHelper.AMQP_ULONG_PREFIX + uLongMessageId.toString();
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_ULONG_PREFIX + uLongMessageId.toString();
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(uLongMessageId);
-        assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+        String idString = _messageIdHelper.toMessageIdString(uLongMessageId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
     }
 
     /**
-     * Test that {@link AmqpMessageIdHelper#toBaseMessageIdString(Object)} returns a string
+     * Test that {@link AmqpMessageIdHelper#toMessageIdString(Object)} returns a string
      * indicating an AMQP encoded binary when given a Binary object.
      */
     @Test
-    public void testToBaseMessageIdStringWithBinary() {
+    public void testToMessageIdStringWithBinary() {
         byte[] bytes = new byte[] { (byte) 0x00, (byte) 0xAB, (byte) 0x09, (byte) 0xFF };
         Binary binary = new Binary(bytes);
 
-        String expected = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00AB09FF";
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00AB09FF";
 
-        String baseMessageIdString = _messageIdHelper.toBaseMessageIdString(binary);
-        assertNotNull("null string should not have been returned", baseMessageIdString);
-        assertEquals("expected base id string was not returned", expected, baseMessageIdString);
+        String idString = _messageIdHelper.toMessageIdString(binary);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected base id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns null if given null
+     */
+    @Test
+    public void testToCorrelationIdStringWithNull() {
+        assertNull("null string should have been returned", _messageIdHelper.toCorrelationIdString(null));
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} throws an IAE if given an unexpected object type.
+     */
+    @Test
+    public void testToCorrelationIdStringThrowsIAEWithUnexpectedType() {
+        try {
+            _messageIdHelper.toCorrelationIdString(new Object());
+            fail("expected exception not thrown");
+        } catch (IllegalArgumentException iae) {
+            // expected
+        }
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns the given
+     * basic string unchanged
+     */
+    @Test
+    public void testToCorrelationIdStringWithString() {
+        String stringId = "ID:myIdString";
+
+        String idString = _messageIdHelper.toCorrelationIdString(stringId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", stringId, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns the given
+     * basic string unchanged
+     */
+    @Test
+    public void testToCorrelationIdStringWithStringNoPrefix() {
+        String stringId = "myIdString";
+
+        String idString = _messageIdHelper.toCorrelationIdString(stringId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", stringId, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded string, when the given string happens to already begin with
+     * the {@link AmqpMessageIdHelper#AMQP_UUID_PREFIX}.
+     */
+    @Test
+    public void testToCorrelationIdStringWithStringBeginningWithEncodingPrefixForUUID() {
+        String uuidStringMessageId =  AmqpMessageIdHelper.AMQP_UUID_PREFIX + UUID.randomUUID();
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + uuidStringMessageId;
+
+        String idString = _messageIdHelper.toCorrelationIdString(uuidStringMessageId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded string, when the given string happens to already begin with
+     * the {@link AmqpMessageIdHelper#AMQP_ULONG_PREFIX}.
+     */
+    @Test
+    public void testToCorrelationIdStringWithStringBeginningWithEncodingPrefixForLong() {
+        String longStringCorrelationId = AmqpMessageIdHelper.AMQP_ULONG_PREFIX + Long.valueOf(123456789L);
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + longStringCorrelationId;
+
+        String idString = _messageIdHelper.toCorrelationIdString(longStringCorrelationId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded string, when the given string happens to already begin with
+     * the {@link AmqpMessageIdHelper#AMQP_BINARY_PREFIX}.
+     */
+    @Test
+    public void testToCorrelationIdStringWithStringBeginningWithEncodingPrefixForBinary() {
+        String binaryStringCorrelationId = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "0123456789ABCDEF";
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + binaryStringCorrelationId;
+
+        String idString = _messageIdHelper.toCorrelationIdString(binaryStringCorrelationId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded string (effectively twice), when the given string happens to already begin with
+     * the {@link AmqpMessageIdHelper#AMQP_STRING_PREFIX}.
+     */
+    @Test
+    public void testToCorrelationIdStringWithStringBeginningWithEncodingPrefixForString() {
+        String stringCorrelationId = AmqpMessageIdHelper.AMQP_STRING_PREFIX + "myStringId";
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + stringCorrelationId;
+
+        String idString = _messageIdHelper.toCorrelationIdString(stringCorrelationId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded string (effectively twice), when the given string happens to already begin with
+     * the {@link AmqpMessageIdHelper#AMQP_NO_PREFIX}.
+     */
+    @Test
+    public void testToCorrelationIdStringWithStringBeginningWithEncodingPrefixForNoIdPrefix() {
+        String stringCorrelationId = AmqpMessageIdHelper.AMQP_NO_PREFIX + "myStringId";
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + stringCorrelationId;
+
+        String idString = _messageIdHelper.toCorrelationIdString(stringCorrelationId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded UUID when given a UUID object.
+     */
+    @Test
+    public void testToCorrelationIdStringWIdStringWithUUID() {
+        UUID uuidCorrelationId = UUID.randomUUID();
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_UUID_PREFIX + uuidCorrelationId.toString();
+
+        String idString = _messageIdHelper.toCorrelationIdString(uuidCorrelationId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded ulong when given a UnsignedLong object.
+     */
+    @Test
+    public void testToCorrelationIdStringWithUnsignedLong() {
+        UnsignedLong uLongCorrelationId = UnsignedLong.valueOf(123456789L);
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_ULONG_PREFIX + uLongCorrelationId.toString();
+
+        String idString = _messageIdHelper.toCorrelationIdString(uLongCorrelationId);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected id string was not returned", expected, idString);
+    }
+
+    /**
+     * Test that {@link AmqpMessageIdHelper#toCorrelationIdString(Object)} returns a string
+     * indicating an AMQP encoded binary when given a Binary object.
+     */
+    @Test
+    public void testToCorrelationIdStringWithBinary() {
+        byte[] bytes = new byte[] { (byte) 0x00, (byte) 0xAB, (byte) 0x09, (byte) 0xFF };
+        Binary binary = new Binary(bytes);
+
+        String expected = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00AB09FF";
+
+        String idString = _messageIdHelper.toCorrelationIdString(binary);
+        assertNotNull("null string should not have been returned", idString);
+        assertEquals("expected base id string was not returned", expected, idString);
     }
 
     /**
@@ -297,7 +491,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
     @Test
     public void testToIdObjectWithEncodedUlong() throws Exception {
         UnsignedLong longId = UnsignedLong.valueOf(123456789L);
-        String provided = AmqpMessageIdHelper.AMQP_ULONG_PREFIX + "123456789";
+        String provided = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_ULONG_PREFIX + "123456789";
 
         Object idObject = _messageIdHelper.toIdObject(provided);
         assertNotNull("null object should not have been returned", idObject);
@@ -315,7 +509,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
         byte[] bytes = new byte[] { (byte) 0x00, (byte) 0xAB, (byte) 0x09, (byte) 0xFF };
         Binary binaryId = new Binary(bytes);
 
-        String provided = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00AB09FF";
+        String provided = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00AB09FF";
 
         Object idObject = _messageIdHelper.toIdObject(provided);
         assertNotNull("null object should not have been returned", idObject);
@@ -344,7 +538,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
         byte[] bytes = new byte[] { (byte) 0x00, (byte) 0xAB, (byte) 0x09, (byte) 0xFF };
         Binary binaryId = new Binary(bytes);
 
-        String provided = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00ab09ff";
+        String provided = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "00ab09ff";
 
         Object idObject = _messageIdHelper.toIdObject(provided);
         assertNotNull("null object should not have been returned", idObject);
@@ -360,7 +554,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
     @Test
     public void testToIdObjectWithEncodedUuid() throws Exception {
         UUID uuid = UUID.randomUUID();
-        String provided = AmqpMessageIdHelper.AMQP_UUID_PREFIX + uuid.toString();
+        String provided = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_UUID_PREFIX + uuid.toString();
 
         Object idObject = _messageIdHelper.toIdObject(provided);
         assertNotNull("null object should not have been returned", idObject);
@@ -391,7 +585,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
     @Test
     public void testToIdObjectWithStringContainingStringEncodingPrefix() throws Exception {
         String suffix = "myStringSuffix";
-        String stringId = AmqpMessageIdHelper.AMQP_STRING_PREFIX + suffix;
+        String stringId = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + suffix;
 
         Object idObject = _messageIdHelper.toIdObject(stringId);
         assertNotNull("null object should not have been returned", idObject);
@@ -409,7 +603,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
     @Test
     public void testToIdObjectWithStringContainingStringEncodingPrefixAndThenUuidPrefix() throws Exception {
         String encodedUuidString = AmqpMessageIdHelper.AMQP_UUID_PREFIX + UUID.randomUUID().toString();
-        String stringId = AmqpMessageIdHelper.AMQP_STRING_PREFIX + encodedUuidString;
+        String stringId = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_STRING_PREFIX + encodedUuidString;
 
         Object idObject = _messageIdHelper.toIdObject(stringId);
         assertNotNull("null object should not have been returned", idObject);
@@ -424,7 +618,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
      */
     @Test
     public void testToIdObjectWithStringContainingBinaryHexThrowsICEWithUnevenLengthString() {
-        String unevenHead = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "123";
+        String unevenHead = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + "123";
 
         try {
             _messageIdHelper.toIdObject(unevenHead);
@@ -447,7 +641,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
 
         // char before '0'
         char nonHexChar = '/';
-        String nonHexString = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
+        String nonHexString = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
 
         try {
             _messageIdHelper.toIdObject(nonHexString);
@@ -460,7 +654,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
 
         // char after '9', before 'A'
         nonHexChar = ':';
-        nonHexString = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
+        nonHexString = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
 
         try {
             _messageIdHelper.toIdObject(nonHexString);
@@ -473,7 +667,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
 
         // char after 'F', before 'a'
         nonHexChar = 'G';
-        nonHexString = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
+        nonHexString = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
 
         try {
             _messageIdHelper.toIdObject(nonHexString);
@@ -486,7 +680,7 @@ public class AmqpMessageIdHelperTest extends QpidJmsTestCase {
 
         // char after 'f'
         nonHexChar = 'g';
-        nonHexString = AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
+        nonHexString = AmqpMessageIdHelper.JMS_ID_PREFIX + AmqpMessageIdHelper.AMQP_BINARY_PREFIX + nonHexChar + nonHexChar;
 
         try {
             _messageIdHelper.toIdObject(nonHexString);
