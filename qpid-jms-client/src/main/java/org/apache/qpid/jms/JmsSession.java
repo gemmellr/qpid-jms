@@ -509,8 +509,7 @@ public class JmsSession implements AutoCloseable, Session, QueueSession, TopicSe
     @Override
     public MessageConsumer createSharedConsumer(Topic topic, String name) throws JMSException {
         checkClosed();
-        // TODO Auto-generated method stub
-        throw new JMSException("Not yet implemented");
+        return createSharedConsumer(topic, name, null);
     }
 
     /**
@@ -519,8 +518,12 @@ public class JmsSession implements AutoCloseable, Session, QueueSession, TopicSe
     @Override
     public MessageConsumer createSharedConsumer(Topic topic, String name, String selector) throws JMSException {
         checkClosed();
-        // TODO Auto-generated method stub
-        throw new JMSException("Not yet implemented");
+        checkDestination(topic);
+        selector = checkSelector(selector);
+        JmsDestination dest = JmsMessageTransformation.transformDestination(connection, topic);
+        JmsMessageConsumer result = new JmsSharedMessageConsumer(getNextConsumerId(), this, dest, name, selector);
+        result.init();
+        return result;
     }
 
     /**
@@ -529,8 +532,7 @@ public class JmsSession implements AutoCloseable, Session, QueueSession, TopicSe
     @Override
     public MessageConsumer createSharedDurableConsumer(Topic topic, String name) throws JMSException {
         checkClosed();
-        // TODO Auto-generated method stub
-        throw new JMSException("Not yet implemented");
+        return createSharedDurableConsumer(topic, name, null);
     }
 
     /**
@@ -539,8 +541,12 @@ public class JmsSession implements AutoCloseable, Session, QueueSession, TopicSe
     @Override
     public MessageConsumer createSharedDurableConsumer(Topic topic, String name, String selector) throws JMSException {
         checkClosed();
-        // TODO Auto-generated method stub
-        throw new JMSException("Not yet implemented");
+        checkDestination(topic);
+        selector = checkSelector(selector);
+        JmsDestination dest = JmsMessageTransformation.transformDestination(connection, topic);
+        JmsMessageConsumer result = new JmsSharedDurableMessageConsumer(getNextConsumerId(), this, dest, name, selector);
+        result.init();
+        return result;
     }
 
     //////////////////////////////////////////////////////////////////////////

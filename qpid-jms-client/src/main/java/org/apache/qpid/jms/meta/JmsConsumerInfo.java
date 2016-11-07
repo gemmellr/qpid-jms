@@ -29,8 +29,10 @@ public final class JmsConsumerInfo implements JmsResource, Comparable<JmsConsume
     private int prefetchSize;
     private boolean browser;
     private String selector;
-    private String clientId;
+    private boolean hasClientId;
     private String subscriptionName;
+    private boolean durable;
+    private boolean shared;
     private boolean noLocal;
     private int acknowledgementMode;
     private boolean localMessageExpiry;
@@ -68,17 +70,15 @@ public final class JmsConsumerInfo implements JmsResource, Comparable<JmsConsume
         info.prefetchSize = prefetchSize;
         info.browser = browser;
         info.selector = selector;
-        info.clientId = clientId;
+        info.hasClientId = hasClientId;
+        info.durable = durable;
         info.subscriptionName = subscriptionName;
         info.noLocal = noLocal;
+        info.shared = shared;
         info.acknowledgementMode = acknowledgementMode;
         info.lastDeliveredSequenceId = lastDeliveredSequenceId;
         info.redeliveryPolicy = getRedeliveryPolicy().copy();
         info.deserializationPolicy = getDeserializationPolicy().copy();
-    }
-
-    public boolean isDurable() {
-        return subscriptionName != null;
     }
 
     @Override
@@ -118,12 +118,20 @@ public final class JmsConsumerInfo implements JmsResource, Comparable<JmsConsume
         this.selector = selector;
     }
 
-    public String getClientId() {
-        return clientId;
+    public boolean isHasClientId() {
+        return hasClientId;
     }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
+    public void setHasClientId(boolean hasClientId) {
+        this.hasClientId = hasClientId;
+    }
+
+    public boolean isDurable() {
+        return durable;
+    }
+
+    public void setDurable(boolean durable) {
+        this.durable = durable;
     }
 
     public String getSubscriptionName() {
@@ -132,6 +140,14 @@ public final class JmsConsumerInfo implements JmsResource, Comparable<JmsConsume
 
     public void setSubscriptionName(String durableSubscriptionId) {
         this.subscriptionName = durableSubscriptionId;
+    }
+
+    public boolean isShared() {
+        return shared;
+    }
+
+    public void setShared(boolean shared) {
+        this.shared = shared;
     }
 
     public boolean isNoLocal() {

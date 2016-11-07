@@ -93,9 +93,11 @@ public class JmsMessageConsumer implements AutoCloseable, MessageConsumer, JmsMe
         JmsDeserializationPolicy deserializationPolicy = session.getDeserializationPolicy().copy();
 
         consumerInfo = new JmsConsumerInfo(consumerId);
-        consumerInfo.setClientId(connection.getClientID());
+        consumerInfo.setHasClientId(connection.isExplicitClientID());
         consumerInfo.setSelector(selector);
+        consumerInfo.setDurable(isDurableSubscription());
         consumerInfo.setSubscriptionName(name);
+        consumerInfo.setShared(isSharedSubscription());
         consumerInfo.setDestination(destination);
         consumerInfo.setAcknowledgementMode(acknowledgementMode);
         consumerInfo.setNoLocal(noLocal);
@@ -630,6 +632,10 @@ public class JmsMessageConsumer implements AutoCloseable, MessageConsumer, JmsMe
     }
 
     public boolean isDurableSubscription() {
+        return false;
+    }
+
+    public boolean isSharedSubscription() {
         return false;
     }
 

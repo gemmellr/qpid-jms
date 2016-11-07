@@ -101,7 +101,6 @@ public class JmsConnection implements AutoCloseable, Connection, TopicConnection
     private final ThreadPoolExecutor executor;
 
     private volatile IOException firstFailureError;
-    private boolean clientIdSet;
     private ExceptionListener exceptionListener;
     private JmsMessageFactory messageFactory;
     private Provider provider;
@@ -295,7 +294,7 @@ public class JmsConnection implements AutoCloseable, Connection, TopicConnection
     public synchronized void setClientID(String clientID) throws JMSException {
         checkClosedOrFailed();
 
-        if (clientIdSet) {
+        if (connectionInfo.isHasClientID()) {
             throw new IllegalStateException("The clientID has already been set");
         }
         if (clientID == null || clientID.isEmpty()) {
@@ -306,7 +305,7 @@ public class JmsConnection implements AutoCloseable, Connection, TopicConnection
         }
 
         this.connectionInfo.setClientId(clientID);
-        this.clientIdSet = true;
+        this.connectionInfo.setHasClientID(true);
 
         // We weren't connected if we got this far, we should now connect to ensure the
         // configured clientID is valid.
@@ -555,7 +554,7 @@ public class JmsConnection implements AutoCloseable, Connection, TopicConnection
     }
 
     protected synchronized boolean isExplicitClientID() {
-        return clientIdSet;
+        return connectionInfo.isHasClientID();
     }
 
     //----- Provider interface methods ---------------------------------------//
