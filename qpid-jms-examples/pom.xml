@@ -44,6 +44,13 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
+
+    <!--  NOTE: Temp addition for tracing 'testing' -->
+    <dependency>
+      <groupId>io.jaegertracing</groupId>
+      <artifactId>jaeger-client</artifactId>
+      <version>1.0.0</version><!-- NOTE: 0.35.5 was the pre-1.0.0 release -->
+    </dependency>
   </dependencies>
 
   <build>
