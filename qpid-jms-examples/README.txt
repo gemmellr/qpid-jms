@@ -5,7 +5,7 @@ Running the client examples
 Use maven to build the module, and additionally copy the dependencies
 alongside their output:
 
-  mvn clean package dependency:copy-dependencies -DincludeScope=runtime -DskipTests
+  mvn clean package dependency:copy-dependencies -DincludeScope=compile -DskipTests
 
 Now you can run the examples using commands of the format:
 
