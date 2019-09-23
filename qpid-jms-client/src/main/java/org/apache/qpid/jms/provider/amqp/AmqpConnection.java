@@ -56,7 +56,6 @@ public class AmqpConnection extends AmqpAbstractResource<JmsConnectionInfo, Conn
     private AmqpConnectionSession connectionSession;
 
     private boolean objectMessageUsesAmqpTypes = false;
-    private boolean anonymousProducerCache = false;
     private int anonymousProducerCacheSize = 10;
 
     public AmqpConnection(AmqpProvider provider, JmsConnectionInfo info, Connection protonConnection) {
@@ -199,21 +198,6 @@ public class AmqpConnection extends AmqpAbstractResource<JmsConnectionInfo, Conn
      */
     public AmqpConnectionSession getConnectionSession() {
         return connectionSession;
-    }
-
-    /**
-     * @return true if anonymous producers should be cached or closed on send complete.
-     */
-    public boolean isAnonymousProducerCache() {
-        return anonymousProducerCache;
-    }
-
-    /**
-     * @param anonymousProducerCache
-     *        enable or disables the caching or anonymous producers.
-     */
-    public void setAnonymousProducerCache(boolean anonymousProducerCache) {
-        this.anonymousProducerCache = anonymousProducerCache;
     }
 
     /**
