@@ -23,6 +23,8 @@ import java.util.function.BiFunction;
 import javax.jms.Connection;
 import javax.net.ssl.SSLContext;
 
+import io.netty.handler.proxy.ProxyHandler;
+
 /**
  * Connection Extensions Definitions
  * <p>
@@ -35,6 +37,18 @@ import javax.net.ssl.SSLContext;
  * ConnectionFactory using the {@link JmsConnectionFactory#setExtension(String, BiFunction)}.
  */
 public enum JmsConnectionExtensions {
+
+    /**
+     * Allows a user to inject a custom Netty proxy handler.
+     * <p>
+     * The extension function takes the form of a BiFunction defined as the following:
+     * <ul>
+     *   <li>
+     *     {@link BiFunction}&lt;{@link Connection}, {@link URI}, {@link ProxyHandler}&gt;
+     *   </li>
+     * </ul>
+     */
+    PROXY_HANDLER("proxyHandler"),
 
     /**
      * Allows a user to inject a custom SSL Context into the client which overrides

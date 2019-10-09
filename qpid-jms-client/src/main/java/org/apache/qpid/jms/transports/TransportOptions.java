@@ -24,6 +24,8 @@ import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
+import io.netty.handler.proxy.ProxyHandler;
+
 /**
  * Encapsulates all the Transport options in one configuration object.
  */
@@ -90,6 +92,7 @@ public class TransportOptions implements Cloneable {
     private String keyAlias;
     private int defaultSslPort = DEFAULT_SSL_PORT;
     private SSLContext sslContextOverride;
+    private ProxyHandler proxyHandler;
 
     private final Map<String, String> httpHeaders = new HashMap<>();
 
@@ -527,6 +530,14 @@ public class TransportOptions implements Cloneable {
         return sslContextOverride;
     }
 
+    public ProxyHandler getProxyHandler() {
+        return proxyHandler;
+    }
+
+    public void setProxyHandler(ProxyHandler proxyHandler) {
+        this.proxyHandler = proxyHandler;
+    }
+
     // TODO - Expose headers ( ? getWSHeaders : getAuthHeaders ...
     public Map<String, String> getHttpHeaders() {
         return httpHeaders;
@@ -575,6 +586,7 @@ public class TransportOptions implements Cloneable {
         copy.setContextProtocol(getContextProtocol());
         copy.setDefaultSslPort(getDefaultSslPort());
         copy.setSslContextOverride(getSslContextOverride());
+        copy.setProxyHandler(getProxyHandler());
         copy.setUseOpenSSL(isUseOpenSSL());
         copy.setLocalAddress(getLocalAddress());
         copy.setLocalPort(getLocalPort());

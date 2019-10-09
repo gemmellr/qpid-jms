@@ -92,6 +92,7 @@ import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
+import io.netty.handler.proxy.ProxyHandler;
 
 /**
  * An AMQP v1.0 Provider.
@@ -202,6 +203,14 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
                     JmsConnectionExtensions.SSL_CONTEXT).apply(connectionInfo.getConnection(), transport.getRemoteLocation());
         } else {
             sslContextOverride = null;
+        }
+
+        if (connectionInfo.getExtensionMap().containsKey(JmsConnectionExtensions.PROXY_HANDLER)) {
+            ProxyHandler proxyHandler = (ProxyHandler) connectionInfo.getExtensionMap().get(
+                    JmsConnectionExtensions.PROXY_HANDLER).apply(connectionInfo.getConnection(), transport.getRemoteLocation());
+            if (proxyHandler != null) {
+                transport.getTransportOptions().setProxyHandler(proxyHandler);
+            }
         }
 
         if (connectionInfo.getExtensionMap().containsKey(JmsConnectionExtensions.HTTP_HEADERS_OVERRIDE)) {

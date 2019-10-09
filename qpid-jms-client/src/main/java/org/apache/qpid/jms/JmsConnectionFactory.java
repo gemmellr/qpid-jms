@@ -62,6 +62,11 @@ import org.apache.qpid.jms.util.URISupport.CompositeData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.netty.handler.proxy.HttpProxyHandler;
+import io.netty.handler.proxy.ProxyHandler;
+import io.netty.handler.proxy.Socks4ProxyHandler;
+import io.netty.handler.proxy.Socks5ProxyHandler;
+
 /**
  * JMS ConnectionFactory Implementation.
  */
@@ -891,6 +896,19 @@ public class JmsConnectionFactory extends JNDIStorable implements ConnectionFact
      */
     public void setSslContext(SSLContext sslContext) {
         this.extensionMap.put(JmsConnectionExtensions.SSL_CONTEXT, (connection, remoteURI) -> sslContext);
+    }
+
+    /**
+     * Sets a netty ProxyHandler to use when creating a connection with this factory. The proxy
+     * handler can be ony of netty's predefined proxy handlers {@link HttpProxyHandler},
+     * {@link Socks4ProxyHandler}, or {@link Socks5ProxyHandler}
+     * with appropriate login configuration.
+     *
+     * @param proxyHandler
+     *      the proxy handler to use or null to not use a proxy any more
+     */
+    public void setProxyHandler(ProxyHandler proxyHandler) {
+        this.extensionMap.put(JmsConnectionExtensions.PROXY_HANDLER, (connection, remoteUri) -> proxyHandler);
     }
 
     public boolean isAwaitClientID() {

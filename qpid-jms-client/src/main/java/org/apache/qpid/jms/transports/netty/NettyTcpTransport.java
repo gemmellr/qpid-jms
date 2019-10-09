@@ -52,6 +52,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -464,9 +465,16 @@ public class NettyTcpTransport implements Transport {
                 bootstrap.localAddress(options.getLocalPort());
             }
         }
+        if (options.getProxyHandler() != null) {
+            // in case we have a proxy we do not want to resolve the address by ourselves but leave this to the proxy
+            bootstrap.resolver(NoopAddressResolverGroup.INSTANCE);
+        }
     }
 
     private void configureChannel(final Channel channel) throws Exception {
+        if (getTransportOptions().getProxyHandler() != null) {
+            channel.pipeline().addFirst(getTransportOptions().getProxyHandler());
+        }
         if (isSecure()) {
             final SslHandler sslHandler;
             try {
