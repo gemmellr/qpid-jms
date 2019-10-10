@@ -21,10 +21,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
-
-import io.netty.handler.proxy.ProxyHandler;
 
 /**
  * Encapsulates all the Transport options in one configuration object.
@@ -92,7 +91,7 @@ public class TransportOptions implements Cloneable {
     private String keyAlias;
     private int defaultSslPort = DEFAULT_SSL_PORT;
     private SSLContext sslContextOverride;
-    private ProxyHandler proxyHandler;
+    private Supplier<?> proxyHandlerSupplier;
 
     private final Map<String, String> httpHeaders = new HashMap<>();
 
@@ -530,12 +529,13 @@ public class TransportOptions implements Cloneable {
         return sslContextOverride;
     }
 
-    public ProxyHandler getProxyHandler() {
-        return proxyHandler;
+    @SuppressWarnings("unchecked")
+    public <T> Supplier<T> getProxyHandlerSupplier() {
+        return (Supplier<T>) proxyHandlerSupplier;
     }
 
-    public void setProxyHandler(ProxyHandler proxyHandler) {
-        this.proxyHandler = proxyHandler;
+    public <T> void setProxyHandlerSupplier(Supplier<T> proxyHandlerFactory) {
+        this.proxyHandlerSupplier = proxyHandlerFactory;
     }
 
     // TODO - Expose headers ( ? getWSHeaders : getAuthHeaders ...
@@ -586,7 +586,7 @@ public class TransportOptions implements Cloneable {
         copy.setContextProtocol(getContextProtocol());
         copy.setDefaultSslPort(getDefaultSslPort());
         copy.setSslContextOverride(getSslContextOverride());
-        copy.setProxyHandler(getProxyHandler());
+        copy.setProxyHandlerSupplier(getProxyHandlerSupplier());
         copy.setUseOpenSSL(isUseOpenSSL());
         copy.setLocalAddress(getLocalAddress());
         copy.setLocalPort(getLocalPort());

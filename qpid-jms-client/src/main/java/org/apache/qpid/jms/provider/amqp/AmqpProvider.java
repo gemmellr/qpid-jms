@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
 
@@ -92,7 +93,6 @@ import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.handler.proxy.ProxyHandler;
 
 /**
  * An AMQP v1.0 Provider.
@@ -205,11 +205,11 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
             sslContextOverride = null;
         }
 
-        if (connectionInfo.getExtensionMap().containsKey(JmsConnectionExtensions.PROXY_HANDLER)) {
-            ProxyHandler proxyHandler = (ProxyHandler) connectionInfo.getExtensionMap().get(
-                    JmsConnectionExtensions.PROXY_HANDLER).apply(connectionInfo.getConnection(), transport.getRemoteLocation());
-            if (proxyHandler != null) {
-                transport.getTransportOptions().setProxyHandler(proxyHandler);
+        if (connectionInfo.getExtensionMap().containsKey(JmsConnectionExtensions.PROXY_HANDLER_SUPPLIER)) {
+            Supplier<?> proxyHandlerSupplier = (Supplier<?>) connectionInfo.getExtensionMap().get(
+                    JmsConnectionExtensions.PROXY_HANDLER_SUPPLIER).apply(connectionInfo.getConnection(), transport.getRemoteLocation());
+            if (proxyHandlerSupplier != null) {
+                transport.getTransportOptions().setProxyHandlerSupplier(proxyHandlerSupplier);
             }
         }
 
