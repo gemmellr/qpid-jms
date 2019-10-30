@@ -21,11 +21,15 @@ import java.net.URI;
 import org.apache.qpid.jms.test.proxy.TestProxy;
 import org.apache.qpid.jms.transports.TransportListener;
 import org.apache.qpid.jms.transports.TransportOptions;
+import org.apache.qpid.jms.util.QpidJMSTestRunner;
+import org.apache.qpid.jms.util.Repeat;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 /**
  * Test the NettyWsTransport with channel level security enabled.
  */
+@RunWith(QpidJMSTestRunner.class)
 public class NettyWssTransportTest extends NettySslTransportTest {
 
     @Override
@@ -42,11 +46,13 @@ public class NettyWssTransportTest extends NettySslTransportTest {
         }
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 60 * 1000)
     public void testConnectViaHttpProxyToServerVerifyHost() throws Exception {
         doConnectToServerVerifyHostTestImpl(true, TestProxy.ProxyType.HTTP);
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 60 * 1000)
     public void testConnectViaHttpProxyToServerNoVerifyHost() throws Exception {
         doConnectToServerVerifyHostTestImpl(false, TestProxy.ProxyType.HTTP);

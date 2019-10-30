@@ -73,6 +73,7 @@ public class ProxyIntegrationTest extends QpidJmsTestCase {
     private static final String CLIENT_JKS_TRUSTSTORE = "src/test/resources/client-jks.truststore";
     private static final String PASSWORD = "password";
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 20000)
     public void testCreateConnectionViaSocksProxy() throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();
@@ -95,6 +96,7 @@ public class ProxyIntegrationTest extends QpidJmsTestCase {
         }
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 20000)
     public void testCreateSecureConnectionViaSocksProxy() throws Exception {
         TransportOptions sslOptions = new TransportOptions();
@@ -128,7 +130,7 @@ public class ProxyIntegrationTest extends QpidJmsTestCase {
         }
     }
 
-    @Repeat(repetitions = 1)
+    @Repeat(repetitions = 100)
     @Test(timeout = 20000)
     public void testFailoverCreateConsumerAfterConnectionDropsViaSocksProxy() throws Exception {
         try (TestAmqpPeer originalPeer = new TestAmqpPeer();
@@ -220,11 +222,13 @@ public class ProxyIntegrationTest extends QpidJmsTestCase {
         }
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 30000)
     public void testCreateWebSocketConnectionViaHttpProxyAndStart() throws Exception {
         doTestCreateWebSocketConnectionViaHttpProxyAndStart(false);
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 30000)
     public void testCreateSecureWebSocketConnectionViaHttpProxyAndStart() throws Exception {
         doTestCreateWebSocketConnectionViaHttpProxyAndStart(true);
@@ -278,11 +282,13 @@ public class ProxyIntegrationTest extends QpidJmsTestCase {
         }
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 30000)
     public void testCreateWebSocketConnectionViaSocksProxyAndStart() throws Exception {
         doTestCreateWebSocketConnectionViaSocksProxyAndStart(false);
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 30000)
     public void testCreateSecureWebSocketConnectionViaSocksProxyAndStart() throws Exception {
         doTestCreateWebSocketConnectionViaSocksProxyAndStart(true);

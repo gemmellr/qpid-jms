@@ -36,7 +36,10 @@ import org.apache.qpid.jms.test.proxy.TestProxy.ProxyType;
 import org.apache.qpid.jms.transports.Transport;
 import org.apache.qpid.jms.transports.TransportListener;
 import org.apache.qpid.jms.transports.TransportOptions;
+import org.apache.qpid.jms.util.QpidJMSTestRunner;
+import org.apache.qpid.jms.util.Repeat;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +54,7 @@ import io.netty.handler.proxy.ProxyHandler;
 /**
  * Test the Netty based WebSocket Transport
  */
+@RunWith(QpidJMSTestRunner.class)
 public class NettyWsTransportTest extends NettyTcpTransportTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyWsTransportTest.class);
@@ -395,6 +399,7 @@ public class NettyWsTransportTest extends NettyTcpTransportTest {
         assertTrue(data.isEmpty());
     }
 
+    @Repeat(repetitions = 100)
     @Test(timeout = 60000)
     public void testConnectViaHttpProxy() throws Exception {
         try (TestProxy testProxy = new TestProxy(ProxyType.HTTP);
