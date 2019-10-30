@@ -399,7 +399,7 @@ public class NettyWsTransportTest extends NettyTcpTransportTest {
         assertTrue(data.isEmpty());
     }
 
-    @Repeat(repetitions = 100)
+    @Repeat(repetitions = 300)
     @Test(timeout = 60000)
     public void testConnectViaHttpProxy() throws Exception {
         try (TestProxy testProxy = new TestProxy(ProxyType.HTTP);

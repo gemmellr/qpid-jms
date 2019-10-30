@@ -624,7 +624,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
         doTestEpollSupport(false);
     }
 
-    @Repeat(repetitions = 100)
+    @Repeat(repetitions = 300)
     @Test(timeout = 60 * 1000)
     public void testConnectToServerViaProxy() throws Exception {
         try (TestProxy testProxy = new TestProxy(ProxyType.SOCKS5);

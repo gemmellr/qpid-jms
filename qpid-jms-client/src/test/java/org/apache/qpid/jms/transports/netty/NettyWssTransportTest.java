@@ -46,13 +46,13 @@ public class NettyWssTransportTest extends NettySslTransportTest {
         }
     }
 
-    @Repeat(repetitions = 100)
+    @Repeat(repetitions = 300)
     @Test(timeout = 60 * 1000)
     public void testConnectViaHttpProxyToServerVerifyHost() throws Exception {
         doConnectToServerVerifyHostTestImpl(true, TestProxy.ProxyType.HTTP);
     }
 
-    @Repeat(repetitions = 100)
+    @Repeat(repetitions = 300)
     @Test(timeout = 60 * 1000)
     public void testConnectViaHttpProxyToServerNoVerifyHost() throws Exception {
         doConnectToServerVerifyHostTestImpl(false, TestProxy.ProxyType.HTTP);

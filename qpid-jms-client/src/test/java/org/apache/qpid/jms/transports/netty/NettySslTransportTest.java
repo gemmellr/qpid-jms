@@ -255,13 +255,13 @@ public class NettySslTransportTest extends NettyTcpTransportTest {
         doConnectToServerVerifyHostTestImpl(false, null);
     }
 
-    @Repeat(repetitions = 100)
+    @Repeat(repetitions = 300)
     @Test(timeout = 60 * 1000)
     public void testConnectViaSocksProxyToServerVerifyHost() throws Exception {
         doConnectToServerVerifyHostTestImpl(true, TestProxy.ProxyType.SOCKS5);
     }
 
-    @Repeat(repetitions = 100)
+    @Repeat(repetitions = 300)
     @Test(timeout = 60 * 1000)
     public void testConnectViaSocksProxyToServerNoVerifyHost() throws Exception {
         doConnectToServerVerifyHostTestImpl(false, TestProxy.ProxyType.SOCKS5);
