@@ -252,7 +252,7 @@ public class AmqpConsumer extends AmqpAbstractResource<JmsConsumerInfo, Receiver
             }
 
             JmsInboundMessageDispatch envelope = (JmsInboundMessageDispatch) current.getContext();
-            if(ackType == ACK_TYPE.CLIENT_ACK_SESSION_SHUTDOWN && (envelope.isDelivered() || envelope.isRecovered())) {
+            if(ackType == ACK_TYPE.SESSION_SHUTDOWN && (envelope.isDelivered() || envelope.isRecovered())) {
                 handleDisposition(envelope, current, MODIFIED_FAILED);
             } else if (envelope.isDelivered()) {
                 final DeliveryState disposition;

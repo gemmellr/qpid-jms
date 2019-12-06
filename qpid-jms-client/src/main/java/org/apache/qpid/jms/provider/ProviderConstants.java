@@ -32,6 +32,6 @@ public final class ProviderConstants {
         MODIFIED_FAILED_UNDELIVERABLE,
         // Conceptual
         DELIVERED,
-        CLIENT_ACK_SESSION_SHUTDOWN
+        SESSION_SHUTDOWN
     }
 }
