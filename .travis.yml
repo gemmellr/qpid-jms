@@ -3,4 +3,3 @@ matrix:
   include:
     - os: osx
       osx_image: xcode10.2
-script: mvn test -Dtest=SslIntegrationTest -Dmaven.test.redirectTestOutputToFile=false
