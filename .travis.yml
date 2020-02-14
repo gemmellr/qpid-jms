@@ -1,16 +1,6 @@
 language: java
 matrix:
   include:
-    - os: linux
-      jdk: openjdk8
-      dist: xenial
-    - os: linux
-      jdk: openjdk11
-      dist: xenial
     - os: osx
       osx_image: xcode9.3
-cache:
-  directories:
-  - $HOME/.m2
-  before_cache:
-  - rm -rf $HOME/.m2/repository/org/apache/qpid/*
+script: mvn test -Dtest=SslIntegrationTest -Dmaven.test.redirectTestOutputToFile=false
