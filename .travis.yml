@@ -4,6 +4,5 @@ matrix:
     - os: osx
       osx_image: xcode9.3
 before_install:
-    - wget "https://drive.google.com/uc?export=download&id=1A5Q7OOTkj_3z_rI2WqBmGRIL7XK9Iq9U" -O netty-tcnative-boringssl-static-2.0.29.Final-SNAPSHOT.jar
+    - wget "https://drive.google.com/uc?export=download&id=1LvKEwVt_JdgrozigXXMwm0bvedGfIxM1" -O netty-tcnative-boringssl-static-2.0.29.Final-SNAPSHOT.jar
     - mvn install:install-file -Dfile=netty-tcnative-boringssl-static-2.0.29.Final-SNAPSHOT.jar
-script: mvn test -Dtest=SslIntegrationTest -Dmaven.test.redirectTestOutputToFile=false
