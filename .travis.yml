@@ -8,4 +8,3 @@ matrix:
 before_install:
     - wget "https://drive.google.com/uc?export=download&id=1jPic2pGAsFoBfPtSbTqBJtTzezb1Yj3A" -O netty-tcnative-boringssl-static-2.0.29.Final-SNAPSHOT.jar
     - mvn install:install-file -Dfile=netty-tcnative-boringssl-static-2.0.29.Final-SNAPSHOT.jar
-script: mvn test -Dtest=SslIntegrationTest -Dmaven.test.redirectTestOutputToFile=false
