@@ -95,6 +95,7 @@ public class JmsConnectionFactory extends JNDIStorable implements ConnectionFact
     private String queuePrefix = null;
     private String topicPrefix = null;
     private boolean validatePropertyNames = true;
+    private boolean validateSelector = true;
     private boolean awaitClientID = true;
     private boolean useDaemonThread = false;
     private long sendTimeout = JmsConnectionInfo.DEFAULT_SEND_TIMEOUT;
@@ -541,6 +542,14 @@ public class JmsConnectionFactory extends JNDIStorable implements ConnectionFact
 
     public void setValidatePropertyNames(boolean validatePropertyNames) {
         this.validatePropertyNames = validatePropertyNames;
+    }
+
+    public boolean isValidateSelector() {
+        return validateSelector;
+    }
+
+    public void setValidateSelector(boolean validateSelector) {
+        this.validateSelector = validateSelector;
     }
 
     /**

@@ -242,9 +242,12 @@ public class SessionIntegrationTest extends QpidJmsTestCase {
 
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-            testPeer.expectReceiverAttach();
+            SourceMatcher sourceMatcher = new SourceMatcher();
+            sourceMatcher.withFilter(nullValue());
+
+            testPeer.expectReceiverAttach(notNullValue(), sourceMatcher);
             testPeer.expectLinkFlow();
-            testPeer.expectReceiverAttach();
+            testPeer.expectReceiverAttach(notNullValue(), sourceMatcher);
             testPeer.expectLinkFlow();
             testPeer.expectClose();
 
@@ -270,9 +273,12 @@ public class SessionIntegrationTest extends QpidJmsTestCase {
 
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-            testPeer.expectReceiverAttach();
+            SourceMatcher sourceMatcher = new SourceMatcher();
+            sourceMatcher.withFilter(nullValue());
+
+            testPeer.expectReceiverAttach(notNullValue(), sourceMatcher);
             testPeer.expectLinkFlow();
-            testPeer.expectReceiverAttach();
+            testPeer.expectReceiverAttach(notNullValue(), sourceMatcher);
             testPeer.expectLinkFlow();
             testPeer.expectClose();
 
@@ -290,17 +296,27 @@ public class SessionIntegrationTest extends QpidJmsTestCase {
 
     @Test(timeout = 20000)
     public void testCreateConsumerWithSimpleSelector() throws Exception {
-        doCreateConsumerWithSelectorTestImpl("myvar=42");
+        doCreateConsumerWithSelectorTestImpl("myvar=42", false);
     }
 
     @Test(timeout = 20000)
     public void testCreateConsumerWithQuotedVariableSelector() throws Exception {
-        doCreateConsumerWithSelectorTestImpl("\"my.quoted-var\"='some-value'");
+        doCreateConsumerWithSelectorTestImpl("\"my.quoted-var\"='some-value'", false);
     }
 
-    private void doCreateConsumerWithSelectorTestImpl(String messageSelector) throws Exception {
+    @Test(timeout = 20000)
+    public void testCreateConsumerWithInvalidSelectorAndDisableValidation() throws Exception {
+        doCreateConsumerWithSelectorTestImpl("my.invalid-var='some-value'", true);
+    }
+
+    private void doCreateConsumerWithSelectorTestImpl(String messageSelector, boolean disableValidation) throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
-            Connection connection = testFixture.establishConnecton(testPeer);
+            String options = null;
+            if(disableValidation) {
+                options = "jms.validateSelector=false";
+            }
+
+            Connection connection = testFixture.establishConnecton(testPeer, options);
             connection.start();
 
             testPeer.expectBegin();
@@ -1002,7 +1018,7 @@ public class SessionIntegrationTest extends QpidJmsTestCase {
     }
 
     @Test(timeout = 20000)
-    public void testInvalidSelector() throws Exception {
+    public void testCreateConsumerWithInvalidSelector() throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
             Connection connection = testFixture.establishConnecton(testPeer);
             connection.start();
