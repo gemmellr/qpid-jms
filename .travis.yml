@@ -1,11 +1,16 @@
 language: java
 matrix:
   include:
-    - os: linux
-      jdk: openjdk11
-      dist: xenial
     - os: osx
       osx_image: xcode12.5
+    - os: osx
+      osx_image: xcode12.4
+    - os: osx
+      osx_image: xcode12.3
+    - os: osx
+      osx_image: xcode12.2
+script:
+  - mvn test -Dtest=ConnectionIntegrationTest#testConnectionFailsWhenUserSuppliesIllegalProperties -Dmaven.test.redirectTestOutputToFile=false -Dproton.trace.frames=true
 cache:
   directories:
   - $HOME/.m2
