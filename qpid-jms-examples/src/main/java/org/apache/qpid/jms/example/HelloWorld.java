@@ -34,9 +34,16 @@ import javax.jms.TextMessage;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 
+import io.jaegertracing.Configuration;
+import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
+
 public class HelloWorld {
     public static void main(String[] args) throws Exception {
         try {
+            Tracer tracer = Configuration.fromEnv("myTracedHelloWorld").getTracer();
+            GlobalTracer.registerIfAbsent(tracer);
+
             // The configuration for the Qpid InitialContextFactory has been supplied in
             // a jndi.properties file in the classpath, which results in it being picked
             // up automatically by the InitialContext constructor.
