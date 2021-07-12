@@ -56,6 +56,8 @@ public class JmsConnectionTest extends AmqpTestSupport {
         assertNotNull(connection);
         connection.start();
         connection.close();
+
+	fail("testing GitHub Actions failure handling");
     }
 
     @Test(timeout=30000)
