@@ -23,16 +23,17 @@ import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
 
+import io.netty.channel.EventLoopGroup;
 import org.apache.qpid.jms.transports.Transport;
 import org.apache.qpid.jms.transports.TransportListener;
 import org.apache.qpid.jms.transports.TransportOptions;
 import org.apache.qpid.jms.transports.TransportSupport;
+import org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.Ref;
 import org.apache.qpid.jms.util.IOExceptionSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +48,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.proxy.ProxyHandler;
@@ -60,6 +59,8 @@ import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 
+import static org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.groupWith;
+
 /**
  * TCP based transport that uses Netty as the underlying IO layer.
  */
@@ -67,11 +68,9 @@ public class NettyTcpTransport implements Transport {
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyTcpTransport.class);
 
-    public static final int SHUTDOWN_TIMEOUT = 50;
     public static final int DEFAULT_MAX_FRAME_SIZE = 65535;
 
-    protected Bootstrap bootstrap;
-    protected EventLoopGroup group;
+    protected NettyEventLoopGroupFactory.EventLoopGroupRef groupRef;
     protected Channel channel;
     protected TransportListener listener;
     protected ThreadFactory ioThreadfactory;
@@ -137,28 +136,23 @@ public class NettyTcpTransport implements Transport {
         }
 
         TransportOptions transportOptions = getTransportOptions();
-        boolean useKQueue = KQueueSupport.isAvailable(transportOptions);
-        boolean useEpoll = EpollSupport.isAvailable(transportOptions);
 
-        if (useKQueue) {
-            LOG.trace("Netty Transport using KQueue mode");
-            group = KQueueSupport.createGroup(1, ioThreadfactory);
-        } else if (useEpoll) {
-            LOG.trace("Netty Transport using Epoll mode");
-            group = EpollSupport.createGroup(1, ioThreadfactory);
-        } else {
-            LOG.trace("Netty Transport using NIO mode");
-            group = new NioEventLoopGroup(1, ioThreadfactory);
-        }
+        this.groupRef = groupWith(transportOptions, getThreadFactory());
 
-        bootstrap = new Bootstrap();
-        bootstrap.group(group);
-        if (useKQueue) {
-            KQueueSupport.createChannel(bootstrap);
-        } else if (useEpoll) {
-            EpollSupport.createChannel(bootstrap);
-        } else {
-            bootstrap.channel(NioSocketChannel.class);
+        Bootstrap bootstrap = new Bootstrap();
+
+        bootstrap.group(groupRef.ref());
+        switch (groupRef.type()) {
+
+            case EPOLL:
+                EpollSupport.createChannel(bootstrap);
+                break;
+            case KQUEUE:
+                KQueueSupport.createChannel(bootstrap);
+                break;
+            case NIO:
+                bootstrap.channel(NioSocketChannel.class);
+                break;
         }
         bootstrap.handler(new ChannelInitializer<Channel>() {
             @Override
@@ -204,7 +198,8 @@ public class NettyTcpTransport implements Transport {
                 channel.close().syncUninterruptibly();
                 channel = null;
             }
-
+            groupRef.close();
+            groupRef = null;
             throw failureCause;
         } else {
             // Connected, allow any held async error to fire now and close the transport.
@@ -214,8 +209,8 @@ public class NettyTcpTransport implements Transport {
                 }
             });
         }
-
-        return group;
+        // returning the channel's event loop: groupRef::ref is multi-threaded
+        return channel.eventLoop();
     }
 
     @Override
@@ -233,15 +228,13 @@ public class NettyTcpTransport implements Transport {
         if (closed.compareAndSet(false, true)) {
             connected.set(false);
             try {
-                if (channel != null) {
+                if (channel != null && groupRef != null) {
                     channel.close().syncUninterruptibly();
                 }
             } finally {
-                if (group != null) {
-                    Future<?> fut = group.shutdownGracefully(0, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
-                    if (!fut.awaitUninterruptibly(2 * SHUTDOWN_TIMEOUT)) {
-                        LOG.trace("Channel group shutdown failed to complete in allotted time");
-                    }
+                if (groupRef != null) {
+                    groupRef.close();
+                    groupRef = null;
                 }
             }
         }

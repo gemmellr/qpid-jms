@@ -16,9 +16,15 @@
  */
 package org.apache.qpid.jms.transports.netty;
 
+import static java.util.Optional.empty;
+import static org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.sharedExistingGroupWith;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -36,6 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.qpid.jms.test.QpidJmsTestCase;
 import org.apache.qpid.jms.test.Wait;
 import org.apache.qpid.jms.test.proxy.TestProxy;
@@ -43,6 +51,7 @@ import org.apache.qpid.jms.test.proxy.TestProxy.ProxyType;
 import org.apache.qpid.jms.transports.Transport;
 import org.apache.qpid.jms.transports.TransportListener;
 import org.apache.qpid.jms.transports.TransportOptions;
+import org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.EventLoopGroupRef;
 import org.apache.qpid.jms.util.QpidJMSTestRunner;
 import org.apache.qpid.jms.util.QpidJMSThreadFactory;
 import org.apache.qpid.jms.util.Repeat;
@@ -394,6 +403,88 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
         assertTrue(data.isEmpty());
     }
 
+    @Test(timeout = 60 * 1000, expected = IllegalStateException.class)
+    public void testCannotDeferenceSharedClosedEventLoopGroup() throws Exception {
+        try (NettyEchoServer server = createEchoServer(createServerOptions())) {
+
+            server.start();
+
+            int port = server.getServerPort();
+            URI serverLocation = new URI("tcp://localhost:" + port);
+            final TransportOptions sharedTransportOptions = createClientOptions();
+            sharedTransportOptions.setUseKQueue(false);
+            sharedTransportOptions.setUseEpoll(false);
+            sharedTransportOptions.setSharedEventLoopThreads(1);
+            Transport nioTransport = createConnectedTransport(serverLocation, sharedTransportOptions);
+            EventLoopGroupRef groupRef = getGroupRef(nioTransport);
+            assertNotNull(groupRef.ref());
+
+            nioTransport.close();
+
+            server.stop();
+
+            groupRef.ref();
+            fail();
+        }
+
+        assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
+        assertTrue(exceptions.isEmpty());
+        assertTrue(data.isEmpty());
+    }
+
+    @Test(timeout = 60 * 1000)
+    public void testSharedEventLoopGroups() throws Exception {
+        try (NettyEchoServer server = createEchoServer(createServerOptions())) {
+            server.start();
+
+            int port = server.getServerPort();
+            URI serverLocation = new URI("tcp://localhost:" + port);
+            final TransportOptions sharedTransportOptions = createClientOptions();
+            sharedTransportOptions.setUseKQueue(false);
+            sharedTransportOptions.setUseEpoll(false);
+            sharedTransportOptions.setSharedEventLoopThreads(1);
+            Transport nioTransport = createConnectedTransport(serverLocation, sharedTransportOptions);
+            Transport sharedNioTransport = createConnectedTransport(serverLocation, sharedTransportOptions);
+            final TransportOptions unsharedTransportOptions = createClientOptions();
+            sharedTransportOptions.setUseKQueue(false);
+            sharedTransportOptions.setUseEpoll(false);
+            sharedTransportOptions.setSharedEventLoopThreads(1);
+
+            assertSame(getGroupRef(nioTransport).ref(), getGroupRef(sharedNioTransport).ref());
+
+            Transport unsharedNioTransport = createConnectedTransport(serverLocation, unsharedTransportOptions);
+
+            assertNotSame(getGroupRef(unsharedNioTransport).ref(), getGroupRef(nioTransport).ref());
+            assertNotSame(getGroupRef(unsharedNioTransport).ref(), getGroupRef(sharedNioTransport).ref());
+
+            unsharedNioTransport.close();
+            assertThat(sharedExistingGroupWith(unsharedTransportOptions), is(empty()));
+
+            nioTransport.close();
+            try (EventLoopGroupRef groupRef = sharedExistingGroupWith(sharedTransportOptions).get()) {
+                assertSame(getGroupRef(sharedNioTransport).ref(), groupRef.ref());
+            }
+            sharedNioTransport.close();
+            assertThat(sharedExistingGroupWith(sharedTransportOptions), is(empty()));
+            server.stop();
+        }
+
+        assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
+        assertTrue(exceptions.isEmpty());
+        assertTrue(data.isEmpty());
+    }
+
+    private Transport createConnectedTransport(final URI serverLocation, final TransportOptions options) {
+        Transport transport = createTransport(serverLocation, testListener, options);
+        try {
+            transport.connect(null, null);
+            LOG.info("Connected to server:{} as expected.", serverLocation);
+        } catch (Exception e) {
+            fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
+        }
+        return transport;
+    }
+
     @Test(timeout = 60 * 1000)
     public void testDataSentIsReceived() throws Exception {
         try (NettyEchoServer server = createEchoServer(createServerOptions())) {
@@ -702,7 +793,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
             assertTrue(transport.isConnected());
             assertEquals(serverLocation, transport.getRemoteLocation());
-            assertEpoll("Transport should be using Epoll", useEpoll, transport);
+            assertEventLoopGroupType("Transport should be using Epoll", transport);
 
             transport.close();
 
@@ -715,13 +806,13 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
         assertTrue(data.isEmpty());
     }
 
-    private void assertEpoll(String message, boolean expected, Transport transport) throws Exception {
-        Field group = null;
+    private static EventLoopGroupRef getGroupRef(final Transport transport) throws IllegalAccessException {
+        Field groupRefField = null;
         Class<?> transportType = transport.getClass();
 
-        while (transportType != null && group == null) {
+        while (transportType != null && groupRefField == null) {
             try {
-                group = transportType.getDeclaredField("group");
+                groupRefField = transportType.getDeclaredField("groupRef");
             } catch (NoSuchFieldException error) {
                 transportType = transportType.getSuperclass();
                 if (Object.class.equals(transportType)) {
@@ -730,14 +821,30 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             }
         }
 
-        assertNotNull("Transport implementation unknown", group);
+        assertNotNull("Transport implementation unknown", groupRefField);
 
-        group.setAccessible(true);
-        if (expected) {
-            assertTrue(message, group.get(transport) instanceof EpollEventLoopGroup);
-        } else {
-            assertFalse(message, group.get(transport) instanceof EpollEventLoopGroup);
+        groupRefField.setAccessible(true);
+        return (EventLoopGroupRef) groupRefField.get(transport);
+    }
+
+    private static void assertEventLoopGroupType(String message, Transport transport) throws Exception {
+        final EventLoopGroupRef groupRef = getGroupRef(transport);
+        Class<? extends EventLoopGroup> eventLoopGroupClass = null;
+        switch (groupRef.type()) {
+
+            case EPOLL:
+                eventLoopGroupClass = EpollEventLoopGroup.class;
+                break;
+            case KQUEUE:
+                eventLoopGroupClass = KQueueEventLoopGroup.class;
+                break;
+            case NIO:
+                eventLoopGroupClass = NioEventLoopGroup.class;
+                break;
+            default:
+                fail("Unsupported type: " + groupRef.type());
         }
+        assertThat(message, groupRef.ref(), instanceOf(eventLoopGroupClass));
     }
 
     @Test(timeout = 60 * 1000)
@@ -772,7 +879,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
             assertTrue(transport.isConnected());
             assertEquals(serverLocation, transport.getRemoteLocation());
-            assertKQueue("Transport should be using Kqueue", useKQueue, transport);
+            assertEventLoopGroupType("Transport should be using Kqueue", transport);
 
             transport.close();
 
@@ -783,31 +890,6 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
         assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
         assertTrue(exceptions.isEmpty());
         assertTrue(data.isEmpty());
-    }
-
-    private void assertKQueue(String message, boolean expected, Transport transport) throws Exception {
-        Field group = null;
-        Class<?> transportType = transport.getClass();
-
-        while (transportType != null && group == null) {
-            try {
-                group = transportType.getDeclaredField("group");
-            } catch (NoSuchFieldException error) {
-                transportType = transportType.getSuperclass();
-                if (Object.class.equals(transportType)) {
-                    transportType = null;
-                }
-            }
-        }
-
-        assertNotNull("Transport implementation unknown", group);
-
-        group.setAccessible(true);
-        if (expected) {
-            assertTrue(message, group.get(transport) instanceof KQueueEventLoopGroup);
-        } else {
-            assertFalse(message, group.get(transport) instanceof KQueueEventLoopGroup);
-        }
     }
 
     protected Transport createTransport(URI serverLocation, TransportListener listener, TransportOptions options) {
