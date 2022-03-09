@@ -28,12 +28,10 @@ import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
 
-import io.netty.channel.EventLoopGroup;
 import org.apache.qpid.jms.transports.Transport;
 import org.apache.qpid.jms.transports.TransportListener;
 import org.apache.qpid.jms.transports.TransportOptions;
 import org.apache.qpid.jms.transports.TransportSupport;
-import org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.Ref;
 import org.apache.qpid.jms.util.IOExceptionSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +57,8 @@ import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 
-import static org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.groupWith;
+import static org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.sharedGroup;
+import static org.apache.qpid.jms.transports.netty.NettyEventLoopGroupFactory.unsharedGroup;
 
 /**
  * TCP based transport that uses Netty as the underlying IO layer.
@@ -70,7 +69,7 @@ public class NettyTcpTransport implements Transport {
 
     public static final int DEFAULT_MAX_FRAME_SIZE = 65535;
 
-    protected NettyEventLoopGroupFactory.EventLoopGroupRef groupRef;
+    protected EventLoopGroupRef groupRef;
     protected Channel channel;
     protected TransportListener listener;
     protected ThreadFactory ioThreadfactory;
@@ -137,13 +136,18 @@ public class NettyTcpTransport implements Transport {
 
         TransportOptions transportOptions = getTransportOptions();
 
-        this.groupRef = groupWith(transportOptions, getThreadFactory());
+        EventLoopType type = EventLoopType.valueOf(transportOptions);
+        int sharedEventLoopThreads = transportOptions.getSharedEventLoopThreads();
+        if (sharedEventLoopThreads > 0) {
+            groupRef = sharedGroup(type, sharedEventLoopThreads);
+        } else {
+            groupRef = unsharedGroup(type, ioThreadfactory);
+        }
 
         Bootstrap bootstrap = new Bootstrap();
+        bootstrap.group(groupRef.group());
 
-        bootstrap.group(groupRef.ref());
-        switch (groupRef.type()) {
-
+        switch (type) {
             case EPOLL:
                 EpollSupport.createChannel(bootstrap);
                 break;
@@ -153,7 +157,10 @@ public class NettyTcpTransport implements Transport {
             case NIO:
                 bootstrap.channel(NioSocketChannel.class);
                 break;
+            default:
+                throw new IllegalArgumentException("Unknown event loop type:" + type);
         }
+
         bootstrap.handler(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(Channel connectedChannel) throws Exception {
@@ -198,8 +205,7 @@ public class NettyTcpTransport implements Transport {
                 channel.close().syncUninterruptibly();
                 channel = null;
             }
-            groupRef.close();
-            groupRef = null;
+
             throw failureCause;
         } else {
             // Connected, allow any held async error to fire now and close the transport.
@@ -209,7 +215,7 @@ public class NettyTcpTransport implements Transport {
                 }
             });
         }
-        // returning the channel's event loop: groupRef::ref is multi-threaded
+        // returning the channel's specific event loop: the overall event loop group may be multi-threaded
         return channel.eventLoop();
     }
 
@@ -228,7 +234,7 @@ public class NettyTcpTransport implements Transport {
         if (closed.compareAndSet(false, true)) {
             connected.set(false);
             try {
-                if (channel != null && groupRef != null) {
+                if (channel != null) {
                     channel.close().syncUninterruptibly();
                 }
             } finally {

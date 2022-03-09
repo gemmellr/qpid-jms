@@ -19,281 +19,194 @@ package org.apache.qpid.jms.transports.netty;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
-import org.apache.qpid.jms.transports.TransportOptions;
+
 import org.apache.qpid.jms.util.QpidJMSThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class NettyEventLoopGroupFactory {
 
-   private NettyEventLoopGroupFactory() {
+    private static final Logger LOG = LoggerFactory.getLogger(NettyEventLoopGroupFactory.class);
+    private static final AtomicLong SHARED_EVENT_LOOP_GROUP_INSTANCE_SEQUENCE = new AtomicLong(0);
+    private static final int SHUTDOWN_TIMEOUT = 50;
 
-   }
+    private static final Map<EventLoopGroupKey, EventLoopGroupHolder> SHARED_EVENT_LOOP_GROUPS = new HashMap<>();
 
-   public interface Ref<T> extends AutoCloseable {
+    private NettyEventLoopGroupFactory() {
+        // No instances
+    }
 
-      T ref();
+    public static EventLoopGroupRef unsharedGroup(final EventLoopType type, final ThreadFactory threadFactory) {
+        Objects.requireNonNull(type);
+        final EventLoopGroup unsharedGroup = createEventLoopGroup(1, type, threadFactory);
 
-      @Override
-      void close();
-   }
+        return new EventLoopGroupRef() {
+            @Override
+            public EventLoopGroup group() {
+                return unsharedGroup;
+            }
 
-   public interface EventLoopGroupRef extends Ref<EventLoopGroup> {
+            @Override
+            public void close() {
+                shutdownEventLoopGroup(unsharedGroup);
+            }
+        };
+    }
 
-      EventLoopType type();
-   }
+    public static EventLoopGroupRef sharedGroup(final EventLoopType type, final int threads) {
+        Objects.requireNonNull(type);
+        if (threads <= 0) {
+            throw new IllegalArgumentException("shared event loop threads value must be > 0");
+        }
 
-   private static final Logger LOG = LoggerFactory.getLogger(NettyEventLoopGroupFactory.class);
-   private static final AtomicLong SHARED_EVENT_LOOP_GROUP_INSTANCE_SEQUENCE = new AtomicLong(0);
-   private static final int SHUTDOWN_TIMEOUT = 50;
+        final EventLoopGroupKey key = new EventLoopGroupKey(type, threads);
 
-   public enum EventLoopType {
-      EPOLL, KQUEUE, NIO;
+        synchronized (SHARED_EVENT_LOOP_GROUPS) {
+            EventLoopGroupHolder groupHolder = SHARED_EVENT_LOOP_GROUPS.get(key);
+            if (groupHolder == null) {
+                groupHolder = new EventLoopGroupHolder(createSharedEventLoopGroup(type, threads), key);
 
-      static EventLoopType valueOf(final TransportOptions transportOptions) {
-         final boolean useKQueue = KQueueSupport.isAvailable(transportOptions);
-         final boolean useEpoll = EpollSupport.isAvailable(transportOptions);
-         if (useKQueue) {
-            return KQUEUE;
-         }
-         if (useEpoll) {
-            return EPOLL;
-         }
-         return NIO;
-      }
-   }
+                SHARED_EVENT_LOOP_GROUPS.put(key, groupHolder);
+            } else {
+                groupHolder.incRef();
+            }
 
-   private static QpidJMSThreadFactory createSharedQpidJMSThreadFactory(final EventLoopType type, final int threads) {
-      return new QpidJMSThreadFactory("SharedNettyEventLoopGroup " + type + ":( threads = " + threads + " - id = " + SHARED_EVENT_LOOP_GROUP_INSTANCE_SEQUENCE.incrementAndGet() + ")", true);
-   }
+            return new SharedEventLoopGroupRef(groupHolder);
+        }
+    }
 
-   private static EventLoopGroup createSharedEventLoopGroup(final TransportOptions transportOptions) {
-      final EventLoopType eventLoopType = EventLoopType.valueOf(transportOptions);
-      return createEventLoopGroup(transportOptions.getSharedEventLoopThreads(), eventLoopType, createSharedQpidJMSThreadFactory(eventLoopType, transportOptions.getSharedEventLoopThreads()));
-   }
+    private static void sharedGroupRefClosed(EventLoopGroupHolder holder) {
+        boolean shutdown = false;
+        synchronized (SHARED_EVENT_LOOP_GROUPS) {
+            int remaining = holder.decRef();
+            if(remaining == 0) {
+                SHARED_EVENT_LOOP_GROUPS.remove(holder.key());
+                shutdown = true;
+            }
+        }
 
-   private static EventLoopGroup createEventLoopGroup(final int threads,
-                                                      final EventLoopType type,
-                                                      final ThreadFactory ioThreadFactory) {
-      switch (Objects.requireNonNull(type)) {
+        if(shutdown) {
+            shutdownEventLoopGroup(holder.group());
+        }
+    }
 
-         case EPOLL:
+    private static EventLoopGroup createEventLoopGroup(final int threads, final EventLoopType type, final ThreadFactory ioThreadFactory) {
+        switch (type) {
+        case EPOLL:
             LOG.trace("Netty Transport using Epoll mode");
             return EpollSupport.createGroup(threads, ioThreadFactory);
-         case KQUEUE:
+        case KQUEUE:
             LOG.trace("Netty Transport using KQueue mode");
             return KQueueSupport.createGroup(threads, ioThreadFactory);
-         case NIO:
+        case NIO:
             LOG.trace("Netty Transport using Nio mode");
             return new NioEventLoopGroup(threads, ioThreadFactory);
-         default:
+        default:
             throw new AssertionError("unexpected type: " + type);
-      }
-   }
+        }
+    }
 
-   private static EventLoopGroupRef unsharedGroupWith(final TransportOptions transportOptions,
-                                                      final ThreadFactory threadFactory) {
-      assert transportOptions.getSharedEventLoopThreads() <= 0;
-      final EventLoopType type = EventLoopType.valueOf(transportOptions);
-      final EventLoopGroup ref = createEventLoopGroup(1, type, threadFactory);
+    private static void shutdownEventLoopGroup(final EventLoopGroup group) {
+        Future<?> fut = group.shutdownGracefully(0, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
+        if (!fut.awaitUninterruptibly(2 * SHUTDOWN_TIMEOUT)) {
+            LOG.trace("Channel group shutdown failed to complete in allotted time");
+        }
+    }
 
-      return new EventLoopGroupRef() {
-         @Override
-         public EventLoopType type() {
-            return type;
-         }
+    private static EventLoopGroup createSharedEventLoopGroup(final EventLoopType type, final int threads) {
+        //TODO: ensure each thread has unique name.
+        ThreadFactory tf = new QpidJMSThreadFactory("SharedNettyEventLoopGroup" + type + ":( threads = " + threads + " - id = " + SHARED_EVENT_LOOP_GROUP_INSTANCE_SEQUENCE.incrementAndGet() + ")", true);
 
-         @Override
-         public EventLoopGroup ref() {
-            return ref;
-         }
+        return createEventLoopGroup(threads, type, tf);
+    }
 
-         @Override
-         public void close() {
-            Future<?> fut = ref.shutdownGracefully(0, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
-            if (!fut.awaitUninterruptibly(2 * SHUTDOWN_TIMEOUT)) {
-               LOG.trace("Channel group shutdown failed to complete in allotted time");
+    private static final class SharedEventLoopGroupRef implements EventLoopGroupRef {
+        private final EventLoopGroupHolder sharedGroupHolder;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        public SharedEventLoopGroupRef(final EventLoopGroupHolder sharedGroupHolder) {
+            this.sharedGroupHolder = Objects.requireNonNull(sharedGroupHolder);
+        }
+
+        @Override
+        public EventLoopGroup group() {
+            if (closed.get()) {
+                throw new IllegalStateException("Group reference is already closed");
             }
-         }
-      };
-   }
 
-   private static final class AtomicCloseableEventLoopGroupRef<T> implements EventLoopGroupRef {
+            return sharedGroupHolder.group();
+        }
 
-      private final EventLoopGroupRef ref;
-      private final AtomicBoolean closed;
-
-      public AtomicCloseableEventLoopGroupRef(final EventLoopGroupRef ref) {
-         this.ref = ref;
-         this.closed = new AtomicBoolean();
-      }
-
-      @Override
-      public EventLoopGroup ref() {
-         return ref.ref();
-      }
-
-      @Override
-      public EventLoopType type() {
-         return ref.type();
-      }
-
-      @Override
-      public void close() {
-         if (closed.compareAndSet(false, true)) {
-            ref.close();
-         }
-      }
-   }
-
-   static Optional<EventLoopGroupRef> sharedExistingGroupWith(final TransportOptions transportOptions) {
-      Objects.requireNonNull(transportOptions);
-      if (transportOptions.getSharedEventLoopThreads() <= 0) {
-         return Optional.empty();
-      }
-      return Optional.ofNullable(SharedGroupRef.of(transportOptions, false));
-   }
-
-   public static EventLoopGroupRef groupWith(final TransportOptions transportOptions,
-                                             final ThreadFactory threadfactory) {
-      Objects.requireNonNull(transportOptions);
-      if (transportOptions.getSharedEventLoopThreads() > 0) {
-         return SharedGroupRef.of(transportOptions, true);
-      }
-      return unsharedGroupWith(transportOptions, threadfactory);
-   }
-
-   private static class EventLoopGroupKey {
-
-      private final EventLoopType type;
-      private final int eventLoopThreads;
-
-      private EventLoopGroupKey(final EventLoopType type, final int eventLoopThreads) {
-         if (eventLoopThreads <= 0) {
-            throw new IllegalArgumentException("eventLoopThreads must be > 0");
-         }
-         this.type = Objects.requireNonNull(type);
-         this.eventLoopThreads = eventLoopThreads;
-      }
-
-      public EventLoopType type() {
-         return type;
-      }
-
-      @Override
-      public boolean equals(final Object o) {
-         if (this == o)
-            return true;
-         if (o == null || getClass() != o.getClass())
-            return false;
-
-         final EventLoopGroupKey that = (EventLoopGroupKey) o;
-
-         if (eventLoopThreads != that.eventLoopThreads)
-            return false;
-         return type == that.type;
-      }
-
-      @Override
-      public int hashCode() {
-         int result = type != null ? type.hashCode() : 0;
-         result = 31 * result + eventLoopThreads;
-         return result;
-      }
-
-      private static EventLoopGroupKey of(final TransportOptions transportOptions) {
-         return new EventLoopGroupKey(EventLoopType.valueOf(transportOptions), transportOptions.getSharedEventLoopThreads());
-      }
-   }
-
-   private static final class SharedGroupRef implements EventLoopGroupRef {
-
-      private static final Map<EventLoopGroupKey, SharedGroupRef> SHARED_EVENT_LOOP_GROUPS = new HashMap<>();
-      private final EventLoopGroupKey key;
-      private final EventLoopGroup group;
-      private final AtomicInteger refCnt;
-
-      private SharedGroupRef(final EventLoopGroup group, final EventLoopGroupKey key) {
-         this.group = Objects.requireNonNull(group);
-         this.key = Objects.requireNonNull(key);
-         refCnt = new AtomicInteger(1);
-      }
-
-      @Override
-      public EventLoopType type() {
-         return key.type();
-      }
-
-      public boolean retain() {
-         while (true) {
-            final int currValue = refCnt.get();
-            if (currValue == 0) {
-               return false;
+        @Override
+        public void close() {
+            if (closed.compareAndSet(false, true)) {
+                sharedGroupRefClosed(sharedGroupHolder);
             }
-            if (refCnt.compareAndSet(currValue, currValue + 1)) {
-               return true;
-            }
-         }
-      }
+        }
+    }
 
-      @Override
-      public EventLoopGroup ref() {
-         if (refCnt.get() == 0) {
-            throw new IllegalStateException("the event loop group cannot be reused");
-         }
-         return group;
-      }
+    private static class EventLoopGroupKey {
+        private final EventLoopType type;
+        private final int eventLoopThreads;
 
-      @Override
-      public void close() {
-         while (true) {
-            final int currValue = refCnt.get();
-            if (currValue == 0) {
-               return;
-            }
-            if (refCnt.compareAndSet(currValue, currValue - 1)) {
-               if (currValue == 1) {
-                  synchronized (SHARED_EVENT_LOOP_GROUPS) {
-                     // SharedGroupRef::of can race with this and replace it
-                     SHARED_EVENT_LOOP_GROUPS.remove(key, this);
-                  }
-                  Future<?> fut = group.shutdownGracefully(0, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS);
-                  if (!fut.awaitUninterruptibly(2 * SHUTDOWN_TIMEOUT)) {
-                     LOG.trace("Channel group shutdown failed to complete in allotted time");
-                  }
-               }
-               return;
-            }
-         }
-      }
+        private EventLoopGroupKey(final EventLoopType type, final int eventLoopThreads) {
+            this.type = type;
+            this.eventLoopThreads = eventLoopThreads;
+        }
 
-      public static EventLoopGroupRef of(final TransportOptions transportOptions, final boolean canCreate) {
-         assert transportOptions.getSharedEventLoopThreads() > 0;
-         synchronized (SHARED_EVENT_LOOP_GROUPS) {
-            final EventLoopGroupKey key = EventLoopGroupKey.of(transportOptions);
-            final SharedGroupRef sharedGroupRef = SHARED_EVENT_LOOP_GROUPS.get(key);
-            if (sharedGroupRef != null && sharedGroupRef.retain()) {
-               return new AtomicCloseableEventLoopGroupRef(sharedGroupRef);
-            }
-            if (!canCreate) {
-               return null;
-            }
-            final SharedGroupRef newSharedGroupRef = new SharedGroupRef(createSharedEventLoopGroup(transportOptions), key);
-            // this can race with sharedGroupRef::close: who would arrive first, win
-            SHARED_EVENT_LOOP_GROUPS.put(key, newSharedGroupRef);
-            return new AtomicCloseableEventLoopGroupRef<>(newSharedGroupRef);
-         }
-      }
-   }
+        @Override
+        public boolean equals(final Object o) {
+            //TODO: add braces
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            final EventLoopGroupKey that = (EventLoopGroupKey) o;
+            if (eventLoopThreads != that.eventLoopThreads)
+                return false;
+            return type == that.type;
+        }
 
+        @Override
+        public int hashCode() {
+            int result = type != null ? type.hashCode() : 0;
+            result = 31 * result + eventLoopThreads;
+            return result;
+        }
+    }
+
+    private static final class EventLoopGroupHolder {
+        private final EventLoopGroup group;
+        private final EventLoopGroupKey key;
+        private int refCnt = 1;
+
+        private EventLoopGroupHolder(final EventLoopGroup sharedGroup, final EventLoopGroupKey key) {
+            this.group = Objects.requireNonNull(sharedGroup);
+            this.key = Objects.requireNonNull(key);
+        }
+
+        public EventLoopGroup group() {
+            return group;
+        }
+
+        public EventLoopGroupKey key() {
+            return key;
+        }
+
+        public int incRef() {
+            return refCnt++;
+        }
+
+        public int decRef() {
+            return --refCnt;
+        }
+    }
 }
