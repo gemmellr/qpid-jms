@@ -600,6 +600,7 @@ public class TransportOptions implements Cloneable {
         copy.setUseOpenSSL(isUseOpenSSL());
         copy.setLocalAddress(getLocalAddress());
         copy.setLocalPort(getLocalPort());
+        copy.setSharedEventLoopThreads(getSharedEventLoopThreads());
 
         return copy;
     }
