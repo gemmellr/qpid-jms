@@ -232,13 +232,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             int port = server.getServerPort();
             URI serverLocation = new URI("tcp://localhost:" + port);
 
-            Transport transport = createTransport(serverLocation, testListener, createClientOptions());
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, createClientOptions());
 
             assertTrue(transport.isConnected());
             assertEquals(serverLocation, transport.getRemoteLocation());
@@ -267,15 +261,10 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             List<Transport> transports = new ArrayList<Transport>();
 
             for (int i = 0; i < CONNECTION_COUNT; ++i) {
-                Transport transport = createTransport(serverLocation, testListener, createClientOptions());
-                try {
-                    transport.connect(null, null);
-                    assertTrue(transport.isConnected());
-                    LOG.info("Connected to server:{} as expected.", serverLocation);
-                    transports.add(transport);
-                } catch (Exception e) {
-                    fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-                }
+                Transport transport = createConnectedTransport(serverLocation, createClientOptions());
+                assertTrue(transport.isConnected());
+
+                transports.add(transport);
             }
 
             for (Transport transport : transports) {
@@ -343,13 +332,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             int port = server.getServerPort();
             URI serverLocation = new URI("tcp://localhost:" + port);
 
-            transport = createTransport(serverLocation, testListener, createClientOptions());
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            transport = createConnectedTransport(serverLocation, createClientOptions());
 
             assertTrue(transport.isConnected());
 
@@ -381,13 +364,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             int port = server.getServerPort();
             URI serverLocation = new URI("tcp://localhost:" + port);
 
-            Transport transport = createTransport(serverLocation, testListener, createClientOptions());
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, createClientOptions());
 
             assertTrue(transport.isConnected());
 
@@ -566,13 +543,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             int port = server.getServerPort();
             URI serverLocation = new URI("tcp://localhost:" + port);
 
-            Transport transport = createTransport(serverLocation, testListener, createClientOptions());
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, createClientOptions());
 
             assertTrue(transport.isConnected());
 
@@ -617,13 +588,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             int port = server.getServerPort();
             URI serverLocation = new URI("tcp://localhost:" + port);
 
-            Transport transport = createTransport(serverLocation, testListener, createClientOptions());
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, createClientOptions());
 
             assertTrue(transport.isConnected());
 
@@ -652,21 +617,13 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
     @Test(timeout = 60 * 1000)
     public void testSendToClosedTransportFails() throws Exception {
-        Transport transport = null;
-
         try (NettyEchoServer server = createEchoServer(createServerOptions())) {
             server.start();
 
             int port = server.getServerPort();
             URI serverLocation = new URI("tcp://localhost:" + port);
 
-            transport = createTransport(serverLocation, testListener, createClientOptions());
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, createClientOptions());
 
             assertTrue(transport.isConnected());
 
@@ -752,13 +709,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             URI serverLocation = new URI("tcp://localhost:" + port);
 
             for (int i = 0; i < 256; ++i) {
-                transport = createTransport(serverLocation, testListener, createClientOptions());
-                try {
-                    transport.connect(null, null);
-                    LOG.info("Connected to server:{} as expected.", serverLocation);
-                } catch (Exception e) {
-                    fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-                }
+                transport = createConnectedTransport(serverLocation, createClientOptions());
 
                 assertTrue(transport.isConnected());
 
@@ -807,13 +758,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             };
             clientOptions.setProxyHandlerSupplier(proxyHandlerFactory);
 
-            Transport transport = createTransport(serverLocation, testListener, clientOptions);
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, clientOptions);
 
             assertTrue(transport.isConnected());
             assertEquals(serverLocation, transport.getRemoteLocation());
@@ -856,13 +801,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             TransportOptions options = createClientOptions();
             options.setUseEpoll(useEpoll);
             options.setUseKQueue(false);
-            Transport transport = createTransport(serverLocation, testListener, options);
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, options);
 
             assertTrue(transport.isConnected());
             assertEquals(serverLocation, transport.getRemoteLocation());
@@ -933,13 +872,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             TransportOptions options = createClientOptions();
             options.setUseKQueue(useKQueue);
             options.setUseEpoll(false);
-            Transport transport = createTransport(serverLocation, testListener, options);
-            try {
-                transport.connect(null, null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
+            Transport transport = createConnectedTransport(serverLocation, options);
 
             assertTrue(transport.isConnected());
             assertEquals(serverLocation, transport.getRemoteLocation());
