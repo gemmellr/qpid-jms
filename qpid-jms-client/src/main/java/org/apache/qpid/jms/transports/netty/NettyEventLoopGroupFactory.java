@@ -103,13 +103,14 @@ public final class NettyEventLoopGroupFactory {
         }
     }
 
-    private static QpidJMSThreadFactory createSharedQpidJMSThreadFactory(final EventLoopType type, final int threads) {
-        final String baseName = "SharedNettyEventLoopGroup: type = " + type + " - threads = " + threads + " - group-id = " + SHARED_EVENT_LOOP_GROUP_INSTANCE_SEQUENCE.incrementAndGet();
-        return new QpidJMSThreadFactory(thread -> baseName + " - thread-id = " + thread.getId(), true, null);
+    private static ThreadFactory createSharedThreadFactory(final EventLoopType type, final int threads) {
+        final String baseName = "SharedNettyEventLoopGroup (" + SHARED_EVENT_LOOP_GROUP_INSTANCE_SEQUENCE.incrementAndGet() + ")[" + type + " - size=" + threads + "]:";
+
+        return new QpidJMSThreadFactory(thread -> baseName + " thread-id=" + thread.getId(), true);
     }
 
     private static EventLoopGroup createSharedEventLoopGroup(final EventLoopType type, final int threads) {
-        return type.createEventLoopGroup(threads, createSharedQpidJMSThreadFactory(type, threads));
+        return type.createEventLoopGroup(threads, createSharedThreadFactory(type, threads));
     }
 
     private static final class SharedEventLoopGroupRef implements EventLoopGroupRef {
@@ -148,10 +149,12 @@ public final class NettyEventLoopGroupFactory {
 
         @Override
         public boolean equals(final Object o) {
-            if (this == o)
+            if (this == o) {
                 return true;
-            if (o == null || getClass() != o.getClass())
+            }
+            if (o == null || getClass() != o.getClass()) {
                 return false;
+            }
             final EventLoopGroupKey that = (EventLoopGroupKey) o;
             if (eventLoopThreads != that.eventLoopThreads) {
                 return false;
@@ -188,17 +191,20 @@ public final class NettyEventLoopGroupFactory {
         public void incRef() {
             assert Thread.holdsLock(SHARED_EVENT_LOOP_GROUPS);
             if (refCnt == 0) {
-                throw new IllegalStateException("cannot resurrect an already released group reference");
+                throw new IllegalStateException("The group was already released, can not increment reference count.");
             }
+
             refCnt++;
         }
 
         public boolean decRef() {
             assert Thread.holdsLock(SHARED_EVENT_LOOP_GROUPS);
             if (refCnt == 0) {
-                throw new IllegalStateException("cannot release more then once and already released group reference");
+                throw new IllegalStateException("The group was already released, can not decrement reference count.");
             }
+
             refCnt--;
+
             return refCnt == 0;
         }
     }

@@ -40,12 +40,12 @@ public class QpidJMSThreadFactory implements ThreadFactory {
      * given name and daemon state.
      *
      * @param threadName
-     * 		the name that will be used for each thread created.
+     *      the name that will be used for each thread created.
      * @param daemon
-     * 		should the created thread be a daemon thread.
+     *      should the created thread be a daemon thread.
      */
     public QpidJMSThreadFactory(String threadName, boolean daemon) {
-        this.threadNamingStrategy = ignore -> threadName;
+        this.threadNamingStrategy = t -> threadName;
         this.daemon = daemon;
         this.threadTracker = null;
     }
@@ -60,39 +60,31 @@ public class QpidJMSThreadFactory implements ThreadFactory {
      * to be known for some reason.
      *
      * @param threadName
-     * 		the name that will be used for each thread created.
+     *      the name that will be used for each thread created.
      * @param daemon
-     * 		should the created thread be a daemon thread.
+     *      should the created thread be a daemon thread.
      * @param threadTracker
-     * 		AtomicReference that will be updated any time a new Thread is created.
+     *      AtomicReference that will be updated any time a new Thread is created.
      */
     public QpidJMSThreadFactory(String threadName, boolean daemon, AtomicReference<Thread> threadTracker) {
-        this.threadNamingStrategy = ignore -> threadName;
+        this.threadNamingStrategy = t -> threadName;
         this.daemon = daemon;
         this.threadTracker = threadTracker;
     }
 
     /**
      * Creates a new Thread factory that will create threads with the
-     * given name, daemon state and the provided thread naming strategy
-     *
-     * This constructor accepts an AtomicReference to track the Thread that
-     * was last created from this factory.  This is most useful for a single
-     * threaded executor where the Id of the internal execution thread needs
-     * to be known for some reason.
+     * provided thread naming function and daemon state.
      *
      * @param threadNamingStrategy
-     * 		the naming strategy that will be used for each thread created.
+     *      the naming strategy that will be used for each thread created.
      * @param daemon
-     * 		should the created thread be a daemon thread.
-     * @param threadTracker
-     * 		AtomicReference that will be updated any time a new Thread is created.
-     *
+     *      should the created thread be a daemon thread.
      */
-    public QpidJMSThreadFactory(Function<Thread, String> threadNamingStrategy, boolean daemon, AtomicReference<Thread> threadTracker) {
+    public QpidJMSThreadFactory(Function<Thread, String> threadNamingStrategy, boolean daemon) {
         this.threadNamingStrategy = threadNamingStrategy;
         this.daemon = daemon;
-        this.threadTracker = threadTracker;
+        this.threadTracker = null;
     }
 
     @Override

@@ -33,16 +33,16 @@ public enum EventLoopType {
 
     private static final Logger LOG = LoggerFactory.getLogger(EventLoopType.class);
 
-    public Bootstrap createChannel(final Bootstrap bootstrap) {
-        return createChannel(this, bootstrap);
+    public void createChannel(final Bootstrap bootstrap) {
+        createChannel(this, requireNonNull(bootstrap));
     }
 
     public EventLoopGroup createEventLoopGroup(final int threads, final ThreadFactory ioThreadFactory) {
-        return createEventLoopGroup(threads, this, ioThreadFactory);
+        return createEventLoopGroup(this, threads, ioThreadFactory);
     }
 
-    private static EventLoopGroup createEventLoopGroup(final int threads, final EventLoopType type, final ThreadFactory ioThreadFactory) {
-        switch (requireNonNull(type)) {
+    private static EventLoopGroup createEventLoopGroup(final EventLoopType type, final int threads, final ThreadFactory ioThreadFactory) {
+        switch (type) {
             case EPOLL:
                 LOG.trace("Netty Transport using Epoll mode");
                 return EpollSupport.createGroup(threads, ioThreadFactory);
@@ -53,13 +53,12 @@ public enum EventLoopType {
                 LOG.trace("Netty Transport using Nio mode");
                 return new NioEventLoopGroup(threads, ioThreadFactory);
             default:
-                throw new AssertionError("unexpected type: " + type);
+                throw new IllegalArgumentException("Unknown event loop type:" + type);
         }
     }
 
-    private static Bootstrap createChannel(final EventLoopType type, final Bootstrap bootstrap) {
-        requireNonNull(bootstrap);
-        switch (requireNonNull(type)) {
+    private static void createChannel(final EventLoopType type, final Bootstrap bootstrap) {
+        switch (type) {
             case EPOLL:
                 EpollSupport.createChannel(bootstrap);
                 break;
@@ -72,7 +71,6 @@ public enum EventLoopType {
             default:
                 throw new IllegalArgumentException("Unknown event loop type:" + type);
         }
-        return bootstrap;
     }
 
     public static EventLoopType valueOf(final TransportOptions transportOptions) {

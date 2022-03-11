@@ -135,17 +135,18 @@ public class NettyTcpTransport implements Transport {
 
         TransportOptions transportOptions = getTransportOptions();
 
-        EventLoopType type = EventLoopType.valueOf(transportOptions);
+        EventLoopType eventLoopType = EventLoopType.valueOf(transportOptions);
         int sharedEventLoopThreads = transportOptions.getSharedEventLoopThreads();
         if (sharedEventLoopThreads > 0) {
-            groupRef = sharedGroup(type, sharedEventLoopThreads);
+            groupRef = sharedGroup(eventLoopType, sharedEventLoopThreads);
         } else {
-            groupRef = unsharedGroup(type, ioThreadfactory);
+            groupRef = unsharedGroup(eventLoopType, ioThreadfactory);
         }
 
         Bootstrap bootstrap = new Bootstrap();
+        bootstrap.group(groupRef.group());
 
-        type.createChannel(bootstrap.group(groupRef.group()));
+        eventLoopType.createChannel(bootstrap);
 
         bootstrap.handler(new ChannelInitializer<Channel>() {
             @Override

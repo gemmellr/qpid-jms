@@ -404,7 +404,6 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
     @Test(timeout = 60 * 1000)
     public void testCannotDereferenceSharedClosedEventLoopGroup() throws Exception {
         try (NettyEchoServer server = createEchoServer(createServerOptions())) {
-
             server.start();
 
             int port = server.getServerPort();
@@ -415,15 +414,13 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             sharedTransportOptions.setSharedEventLoopThreads(1);
 
             EventLoopGroupRef groupRef = null;
-            Transport nioTransport = createConnectedTransport(serverLocation, sharedTransportOptions);
+            Transport nioSharedTransport = createConnectedTransport(serverLocation, sharedTransportOptions);
             try {
-                groupRef = getGroupRef(nioTransport);
+                groupRef = getGroupRef(nioSharedTransport);
                 assertNotNull(groupRef.group());
             } finally {
-                nioTransport.close();
+                nioSharedTransport.close();
             }
-
-            server.stop();
 
             try {
                 groupRef.group();
@@ -442,7 +439,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
     @Test(timeout = 60 * 1000)
     public void testSharedEventLoopGroups() throws Exception {
-        final Set<Transport> notClosedTransports = new HashSet<>();
+        final Set<Transport> transports = new HashSet<>();
         try (NettyEchoServer server = createEchoServer(createServerOptions())) {
             server.start();
 
@@ -452,31 +449,25 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             sharedTransportOptions.setUseKQueue(false);
             sharedTransportOptions.setUseEpoll(false);
             sharedTransportOptions.setSharedEventLoopThreads(1);
+
             Transport sharedNioTransport1 = createConnectedTransport(serverLocation, sharedTransportOptions);
-            notClosedTransports.add(sharedNioTransport1);
+            transports.add(sharedNioTransport1);
             Transport sharedNioTransport2 = createConnectedTransport(serverLocation, sharedTransportOptions);
-            notClosedTransports.add(sharedNioTransport2);
-            assertSame(getGroupRef(sharedNioTransport1).group(), getGroupRef(sharedNioTransport2).group());
+            transports.add(sharedNioTransport2);
+
             final EventLoopGroup sharedGroup = getGroupRef(sharedNioTransport1).group();
+            assertSame(sharedGroup, getGroupRef(sharedNioTransport2).group());
 
             sharedNioTransport1.close();
-            notClosedTransports.remove(sharedNioTransport1);
             assertFalse(sharedGroup.isShutdown());
             assertFalse(sharedGroup.isTerminated());
+
             sharedNioTransport2.close();
-            notClosedTransports.remove(sharedNioTransport2);
             assertTrue(sharedGroup.isShutdown());
             assertTrue(sharedGroup.isTerminated());
-
-            server.stop();
         } finally {
-            notClosedTransports.forEach(transport -> {
-                try {
-                    transport.close();
-                } catch (Throwable t) {
-                    LOG.warn(t.getMessage());
-                }
-            });
+            // Ensures that any not already closed, e.g due to test failure, are now closed.
+            cleanUpTransports(transports);
         }
 
         assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
@@ -486,7 +477,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
     @Test(timeout = 60 * 1000)
     public void testSharedEventLoopGroupsOfDifferentSizes() throws Exception {
-        final Set<Transport> notClosedTransports = new HashSet<>();
+        final Set<Transport> transports = new HashSet<>();
         try (NettyEchoServer server = createEchoServer(createServerOptions())) {
             server.start();
 
@@ -498,33 +489,29 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             sharedTransportOptions1.setUseEpoll(false);
             sharedTransportOptions1.setSharedEventLoopThreads(1);
             Transport nioSharedTransport1 = createConnectedTransport(serverLocation, sharedTransportOptions1);
-            notClosedTransports.add(nioSharedTransport1);
+            transports.add(nioSharedTransport1);
+
             final TransportOptions sharedTransportOptions2 = createClientOptions();
             sharedTransportOptions2.setUseKQueue(false);
             sharedTransportOptions2.setUseEpoll(false);
             sharedTransportOptions2.setSharedEventLoopThreads(2);
             Transport nioSharedTransport2 = createConnectedTransport(serverLocation, sharedTransportOptions2);
-            notClosedTransports.add(nioSharedTransport2);
-            assertNotSame(getGroupRef(nioSharedTransport1).group(), getGroupRef(nioSharedTransport2).group());
-            EventLoopGroup unsharedGroup1 = getGroupRef(nioSharedTransport1).group();
-            EventLoopGroup unsharedGroup2 = getGroupRef(nioSharedTransport2).group();
+            transports.add(nioSharedTransport2);
+
+            EventLoopGroup sharedGroup1 = getGroupRef(nioSharedTransport1).group();
+            EventLoopGroup sharedGroup2 = getGroupRef(nioSharedTransport2).group();
+            assertNotSame(sharedGroup1, sharedGroup2);
+
             nioSharedTransport1.close();
-            notClosedTransports.remove(nioSharedTransport1);
-            assertTrue(unsharedGroup1.isShutdown());
-            assertTrue(unsharedGroup1.isTerminated());
+            assertTrue(sharedGroup1.isShutdown());
+            assertTrue(sharedGroup1.isTerminated());
+
             nioSharedTransport2.close();
-            notClosedTransports.remove(nioSharedTransport2);
-            assertTrue(unsharedGroup2.isShutdown());
-            assertTrue(unsharedGroup2.isTerminated());
-            server.stop();
+            assertTrue(sharedGroup2.isShutdown());
+            assertTrue(sharedGroup2.isTerminated());
         } finally {
-            notClosedTransports.forEach(transport -> {
-                try {
-                    transport.close();
-                } catch (Throwable t) {
-                    LOG.warn(t.getMessage());
-                }
-            });
+            // Ensures that any not already closed, e.g due to test failure, are now closed.
+            cleanUpTransports(transports);
         }
 
         assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
@@ -534,7 +521,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
     @Test(timeout = 60 * 1000)
     public void testUnsharedEventLoopGroups() throws Exception {
-        final Set<Transport> notClosedTransports = new HashSet<>();
+        final Set<Transport> transports = new HashSet<>();
         try (NettyEchoServer server = createEchoServer(createServerOptions())) {
             server.start();
 
@@ -544,48 +531,31 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             unsharedTransportOptions.setUseKQueue(false);
             unsharedTransportOptions.setUseEpoll(false);
             unsharedTransportOptions.setSharedEventLoopThreads(0);
+
             Transport unsharedNioTransport1 = createConnectedTransport(serverLocation, unsharedTransportOptions);
-            notClosedTransports.add(unsharedNioTransport1);
+            transports.add(unsharedNioTransport1);
             Transport unsharedNioTransport2 = createConnectedTransport(serverLocation, unsharedTransportOptions);
-            notClosedTransports.add(unsharedNioTransport2);
-            assertNotSame(getGroupRef(unsharedNioTransport1).group(), getGroupRef(unsharedNioTransport2).group());
+            transports.add(unsharedNioTransport2);
+
             final EventLoopGroup unsharedGroup1 = getGroupRef(unsharedNioTransport1).group();
             final EventLoopGroup unsharedGroup2 = getGroupRef(unsharedNioTransport2).group();
+            assertNotSame(unsharedGroup1, unsharedNioTransport2);
 
             unsharedNioTransport1.close();
-            notClosedTransports.remove(unsharedNioTransport1);
             assertTrue(unsharedGroup1.isShutdown());
             assertTrue(unsharedGroup1.isTerminated());
+
             unsharedNioTransport2.close();
-            notClosedTransports.remove(unsharedNioTransport2);
             assertTrue(unsharedGroup2.isShutdown());
             assertTrue(unsharedGroup2.isTerminated());
-
-            server.stop();
         } finally {
-            notClosedTransports.forEach(transport -> {
-                try {
-                    transport.close();
-                } catch (Throwable t) {
-                    LOG.warn(t.getMessage());
-                }
-            });
+            // Ensures that any not already closed, e.g due to test failure, are now closed.
+            cleanUpTransports(transports);
         }
 
         assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
         assertTrue(exceptions.isEmpty());
         assertTrue(data.isEmpty());
-    }
-
-    private Transport createConnectedTransport(final URI serverLocation, final TransportOptions options) {
-        Transport transport = createTransport(serverLocation, testListener, options);
-        try {
-            transport.connect(null, null);
-            LOG.info("Connected to server:{} as expected.", serverLocation);
-        } catch (Exception e) {
-            fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-        }
-        return transport;
     }
 
     @Test(timeout = 60 * 1000)
@@ -996,6 +966,27 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
         } else {
             return new NettyTcpTransport(listener, serverLocation, options, false);
         }
+    }
+
+    private Transport createConnectedTransport(final URI serverLocation, final TransportOptions options) {
+        Transport transport = createTransport(serverLocation, testListener, options);
+        try {
+            transport.connect(null, null);
+            LOG.info("Connected to server:{} as expected.", serverLocation);
+        } catch (Exception e) {
+            fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
+        }
+        return transport;
+    }
+
+    private void cleanUpTransports(final Set<Transport> transports) {
+        transports.forEach(transport -> {
+            try {
+                transport.close();
+            } catch (Throwable t) {
+                LOG.warn(t.getMessage());
+            }
+        });
     }
 
     protected TransportOptions createClientOptions() {
