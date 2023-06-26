@@ -58,11 +58,27 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- Adding a JMS 2.0 API jar for these tests explicitly,
+         since its whats implemented by ActiveMQ and otherwise
+         tests will fail due to dep managing Jakarta 3.1 API. -->
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-jms_2.0_spec</artifactId>
+      <version>1.0-alpha-2</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.apache.activemq</groupId>
       <artifactId>activemq-broker</artifactId>
       <version>${activemq-version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.activemq</groupId>
