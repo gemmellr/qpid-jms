@@ -218,7 +218,7 @@ public class FailedConnectionsIntegrationTest extends QpidJmsTestCase {
                 URI redirectionURI = redirectEx.getRedirectionURI();
 
                 assertNotNull(redirectionURI);
-                assertTrue(redirectionURI.getQuery().contains("amqp.vhost=vhost"), "vhost");
+                assertTrue(redirectionURI.getQuery().contains("amqp.vhost=vhost"), "Unexpected query, got: " + redirectionURI.getQuery());
                 assertEquals("127.0.0.1", redirectionURI.getHost());
                 assertEquals(5672, redirectionURI.getPort());
             } catch (Exception ex) {

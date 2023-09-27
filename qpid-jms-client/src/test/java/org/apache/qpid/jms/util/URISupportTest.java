@@ -168,7 +168,7 @@ public class URISupportTest {
     }
 
     protected void assertMapKey(Map<String, String> map, String key, Object expected) {
-        assertEquals(map.get(key), expected, "Map key: " + key);
+        assertEquals(expected, map.get(key), "Unexpected value for map key: " + key);
     }
 
     //---- checkParenthesis --------------------------------------------------------//

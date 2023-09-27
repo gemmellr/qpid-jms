@@ -52,7 +52,7 @@ public class ProviderFutureTest {
 
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
-    void testIsComplete(String futureTypeName) {
+    public void testIsComplete(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
 
@@ -64,7 +64,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testOnSuccess(String futureTypeName) {
+    public void testOnSuccess(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
 
@@ -79,7 +79,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(90)
-    void testTimedSync(String futureTypeName) {
+    public void testTimedSync(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
 
@@ -93,7 +93,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testOnFailure(String futureTypeName) {
+    public void testOnFailure(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
         ProviderException ex = new ProviderException("Failed");
@@ -110,7 +110,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testOnSuccessCallsSynchronization(String futureTypeName) {
+    public void testOnSuccessCallsSynchronization(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         final AtomicBoolean syncCalled = new AtomicBoolean(false);
         ProviderFuture future = futuresFactory.createFuture(new ProviderSynchronization() {
@@ -138,7 +138,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testOnFailureCallsSynchronization(String futureTypeName) {
+    public void testOnFailureCallsSynchronization(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         final AtomicBoolean syncCalled = new AtomicBoolean(false);
         ProviderFuture future = futuresFactory.createFuture(new ProviderSynchronization() {
@@ -169,7 +169,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testSuccessfulStateIsFixed(String futureTypeName) {
+    public void testSuccessfulStateIsFixed(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
         ProviderException ex = new ProviderException("Failed");
@@ -186,7 +186,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testFailedStateIsFixed(String futureTypeName) {
+    public void testFailedStateIsFixed(String futureTypeName) {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
         ProviderException ex = new ProviderException("Failed");
@@ -204,7 +204,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testSyncHandlesInterruption(String futureTypeName) throws InterruptedException {
+    public void testSyncHandlesInterruption(String futureTypeName) throws InterruptedException {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
 
@@ -240,7 +240,7 @@ public class ProviderFutureTest {
     @MethodSource("data")
     @ParameterizedTest(name = "{index}: futureType={0}")
     @Timeout(10)
-    void testTimedSyncHandlesInterruption(String futureTypeName) throws InterruptedException {
+    public void testTimedSyncHandlesInterruption(String futureTypeName) throws InterruptedException {
         initProviderFutureTest(futureTypeName);
         ProviderFuture future = futuresFactory.createFuture();
 
