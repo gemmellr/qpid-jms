@@ -387,15 +387,19 @@ public class JmsSession implements AutoCloseable, Session, QueueSession, TopicSe
                     // see if any are actually pending or have completed already.
                     asyncSendsCompletion = connection.newProviderFuture();
 
-                    completionExecutor.execute(() -> {
-                        if (asyncSendQueue.isEmpty()) {
-                            asyncSendsCompletion.onSuccess();
-                        }
-                    });
+                    if (asyncSendsCompletion != null) {
+                        completionExecutor.execute(() -> {
+                            if (asyncSendQueue.isEmpty()) {
+                                asyncSendsCompletion.onSuccess();
+                            }
+                        });
+                    }
                 }
 
                 try {
-                    asyncSendsCompletion.sync(connection.getCloseTimeout(), TimeUnit.MILLISECONDS);
+                    if (asyncSendsCompletion != null) {
+                        asyncSendsCompletion.sync(connection.getCloseTimeout(), TimeUnit.MILLISECONDS);
+                    }
                 } catch (Exception ex) {
                     LOG.trace("Exception during wait for asynchronous sends to complete", ex);
                 } finally {
