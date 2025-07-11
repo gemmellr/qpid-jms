@@ -8,7 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ 11, 17, 21, 24 ]
+        java: [ 11, 17, 21, 24, 25-ea ]
+        experimental: [ false ]
+        include:
+          - java: 25-ea
+            experimental: true
 
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +29,13 @@ jobs:
           java-version: ${{ matrix.java }}
           distribution: 'temurin'
 
-      - name: Build
+      - name: Build (Regular)
+        if: ${{ ! matrix.experimental }}
         run: mvn -B clean verify
+
+      - name: Build (BB Experimental)
+        if: ${{ matrix.experimental }}
+        run: mvn -B clean verify -Dnet.bytebuddy.experimental=true
 
       - name: Archive Test Logs On Failure
         if: failure()
