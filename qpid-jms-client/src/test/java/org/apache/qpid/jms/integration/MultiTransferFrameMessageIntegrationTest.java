@@ -18,6 +18,9 @@
  */
 package org.apache.qpid.jms.integration;
 
+import static org.apache.qpid.proton.amqp.transport.LinkError.TRANSFER_LIMIT_EXCEEDED;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,12 +37,14 @@ import jakarta.jms.MessageConsumer;
 import jakarta.jms.Queue;
 import jakarta.jms.Session;
 
+import org.apache.qpid.jms.exceptions.JmsConnectionFailedException;
 import org.apache.qpid.jms.provider.amqp.message.AmqpMessageSupport;
 import org.apache.qpid.jms.test.QpidJmsTestCase;
 import org.apache.qpid.jms.test.testpeer.TestAmqpPeer;
 import org.apache.qpid.jms.test.testpeer.describedtypes.sections.DataDescribedType;
 import org.apache.qpid.jms.test.testpeer.describedtypes.sections.MessageAnnotationsDescribedType;
 import org.apache.qpid.jms.test.testpeer.describedtypes.sections.PropertiesDescribedType;
+import org.apache.qpid.jms.test.testpeer.matchers.ErrorMatcher;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.DescribedType;
 import org.apache.qpid.proton.amqp.UnsignedInteger;
@@ -126,5 +131,60 @@ public class MultiTransferFrameMessageIntegrationTest extends QpidJmsTestCase {
         }
 
         return payload;
+    }
+
+    @Test
+    @Timeout(20)
+    public void testExceedsMaxTransfersPerDelivery() throws Exception {
+        int msgPayloadPerFrame = 100_000;
+        int payloadSizeInBytes = (10 * msgPayloadPerFrame) + 1;
+        boolean sendFinalTransferFrameWithoutPayload = true;
+
+        try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
+            Connection connection = testFixture.establishConnecton(testPeer, "?jms.prefetchPolicy.all=0&amqp.maxTransfersPerDelivery=10");
+            connection.start();
+
+            testPeer.expectBegin();
+
+            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            Queue queue = session.createQueue("myQueue");
+
+            PropertiesDescribedType properties = new PropertiesDescribedType();
+            properties.setContentType(AmqpMessageSupport.OCTET_STREAM_CONTENT_TYPE);
+
+            MessageAnnotationsDescribedType msgAnnotations = new MessageAnnotationsDescribedType();
+            msgAnnotations.setSymbolKeyedAnnotation(AmqpMessageSupport.JMS_MSG_TYPE.toString(), AmqpMessageSupport.JMS_BYTES_MESSAGE);
+
+            final byte[] expectedContent = createMessageBodyContent(payloadSizeInBytes, 0);
+            DescribedType dataContent = new DataDescribedType(new Binary(expectedContent));
+
+            testPeer.expectReceiverAttach();
+
+            testPeer.expectLinkFlowAndSendBackMessages(null, msgAnnotations, properties, null, dataContent, 1,
+                                                      true, false, Matchers.equalTo(UnsignedInteger.valueOf(1)), 1,
+                                                      false, false, msgPayloadPerFrame, sendFinalTransferFrameWithoutPayload);
+
+            ErrorMatcher errorMatcher = new ErrorMatcher()
+                    .withCondition(equalTo(TRANSFER_LIMIT_EXCEEDED))
+                    .withDescription(equalTo("Max transfers per delivery limit exceeded"));
+
+            testPeer.expectClose(errorMatcher, false);
+
+            MessageConsumer messageConsumer = session.createConsumer(queue);
+
+            try {
+                messageConsumer.receiveNoWait();
+                fail("Expected exception");
+            } catch (JmsConnectionFailedException e) {
+                final String message = e.getMessage();
+                assertNotNull(message);
+                assertTrue(message.contains("Max transfers per delivery limit exceeded"));
+                assertTrue(message.contains("transfer-limit-exceeded"));
+            }
+
+            connection.close();
+
+            testPeer.waitForAllHandlersToComplete(3000);
+        }
     }
 }
