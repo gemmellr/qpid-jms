@@ -136,12 +136,13 @@ public class MultiTransferFrameMessageIntegrationTest extends QpidJmsTestCase {
     @Test
     @Timeout(20)
     public void testExceedsMaxTransfersPerDelivery() throws Exception {
-        int msgPayloadPerFrame = 100_000;
-        int payloadSizeInBytes = (10 * msgPayloadPerFrame) + 1;
-        boolean sendFinalTransferFrameWithoutPayload = true;
+        doExceedsMaxTransfersPerDeliveryTestImpl(100_000, (11 * 100_000) - 1000, false, 10);
+        doExceedsMaxTransfersPerDeliveryTestImpl(100_000, (10 * 100_000) - 1000, true, 10);
+    }
 
+    private void doExceedsMaxTransfersPerDeliveryTestImpl(int msgPayloadPerFrame, int payloadSizeInBytes, boolean sendLastEmptyTransfer, int option) throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
-            Connection connection = testFixture.establishConnecton(testPeer, "?jms.prefetchPolicy.all=0&amqp.maxTransfersPerDelivery=10");
+            Connection connection = testFixture.establishConnecton(testPeer, "?jms.prefetchPolicy.all=0&amqp.maxTransfersPerDelivery=" + option);
             connection.start();
 
             testPeer.expectBegin();
@@ -162,7 +163,7 @@ public class MultiTransferFrameMessageIntegrationTest extends QpidJmsTestCase {
 
             testPeer.expectLinkFlowAndSendBackMessages(null, msgAnnotations, properties, null, dataContent, 1,
                                                       true, false, Matchers.equalTo(UnsignedInteger.valueOf(1)), 1,
-                                                      false, false, msgPayloadPerFrame, sendFinalTransferFrameWithoutPayload);
+                                                      false, false, msgPayloadPerFrame, sendLastEmptyTransfer);
 
             ErrorMatcher errorMatcher = new ErrorMatcher()
                     .withCondition(equalTo(TRANSFER_LIMIT_EXCEEDED))
